@@ -14,6 +14,7 @@ import PreferenceToggle from '../components/PreferenceToggle';
 import SignalCard from '../components/SignalCard';
 import DebateModal from '../components/DebateModal';
 import Onboarding from '../components/Onboarding';
+import Logo from '../components/Logo';
 
 export default function Dashboard({ onSignOut }) {
   const [onboarded, setOnboarded] = useState(false);
@@ -59,19 +60,14 @@ export default function Dashboard({ onSignOut }) {
       {!onboarded && <Onboarding onComplete={handleOnboarding} />}
 
       <header
-        className="border-b border-zinc-800 sticky top-0 z-30"
-        style={{ backgroundColor: 'rgba(9,9,11,0.8)', backdropFilter: 'blur(8px)' }}
+        className="sticky top-0 z-30"
+        style={{ backgroundColor: 'transparent' }}
       >
         <div className="flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: YELLOW }}>
-              <Compass className="w-5 h-5 text-black" />
-            </div>
-            <div>
-              <div className="text-sm font-bold">Viega Intelligent Compass</div>
-              <div className="text-zinc-500 uppercase tracking-wider" style={{ fontSize: 10 }}>
-                Focus - {focusLabel ? focusLabel.label : 'Unset'}
-              </div>
+            <Logo size={24} />
+            <div className="text-zinc-500 uppercase tracking-wider" style={{ fontSize: 10 }}>
+              Focus - {focusLabel ? focusLabel.label : 'Unset'}
             </div>
           </div>
 

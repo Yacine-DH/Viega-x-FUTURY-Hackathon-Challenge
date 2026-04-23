@@ -3,19 +3,18 @@ import { Compass, Radar, MessageSquare, Sparkles, LogIn, ArrowRight } from 'luci
 import { YELLOW, YELLOW_HOVER } from '../constants/styles';
 import FeatureCard from '../components/FeatureCard';
 import StatCard from '../components/StatCard';
+import Logo from '../components/Logo';
 
 export default function HomePage({ onLaunch, onSignIn }) {
   return (
     <div className="min-h-screen bg-zinc-950 text-white overflow-y-auto" style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif' }}>
-      <nav className="flex items-center justify-between px-8 py-5 border-b border-zinc-900">
+      <nav
+        className="fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-8 py-5"
+        style={{ backgroundColor: 'transparent' }}
+      >
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: YELLOW }}>
-            <Compass className="w-5 h-5 text-black" />
-          </div>
-          <div>
-            <div className="font-bold">Viega Intelligent Compass</div>
-            <div className="text-zinc-500 uppercase tracking-wider" style={{ fontSize: 10 }}>Futury x Viega 2026</div>
-          </div>
+          <Logo size={28} />
+          <div className="text-zinc-500 uppercase tracking-wider" style={{ fontSize: 10 }}>Futury x Viega 2026</div>
         </div>
         <div className="flex items-center gap-1">
           <button className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition">Product</button>
