@@ -28,3 +28,4 @@ firecrawl-py==1.4.0
 
 # Utils
 python-dotenv==1.0.1
+setuptools<70.0.0

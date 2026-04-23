@@ -54,7 +54,7 @@ class BaseScraper(abc.ABC):
             return 0
 
         sent = 0
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=60.0) as client:
             for signal in signals:
                 try:
                     resp = await client.post(

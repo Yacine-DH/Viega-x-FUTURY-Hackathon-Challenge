@@ -22,21 +22,21 @@ logger = logging.getLogger(__name__)
 EU_COMPETITOR_PAGES = [
     {
         "name": "geberit",
-        "url": "https://www.geberit.com/investors/media-releases/",
+        "url": "https://www.geberit.com/en/publications",
         "article_selector": "article, .news-item, .press-release, .media-release",
         "title_selector": "h2, h3, .title",
         "date_selector": "time, .date, [datetime]",
     },
     {
         "name": "aalberts",
-        "url": "https://ir.aalberts.com/en/press-releases",
+        "url": "https://aalberts.com/newsroom",
         "article_selector": "article, .press-release-item, .news-list__item",
         "title_selector": "h2, h3, .press-release__title",
         "date_selector": "time, .date, .press-release__date",
     },
     {
         "name": "aliaxis",
-        "url": "https://www.aliaxis.com/en/investors/press-releases",
+        "url": "https://aliaxis.com/latest/",
         "article_selector": "article, .press-release, .news-card",
         "title_selector": "h2, h3, .card__title",
         "date_selector": "time, .date, .card__date",
@@ -44,7 +44,7 @@ EU_COMPETITOR_PAGES = [
 ]
 
 NIBCO_EDGAR_RSS = (
-    "https://www.sec.gov/cgi-bin/browse-edgar"
+    "https://www.nibco.com/news-events/news/"
     "?action=getcompany&company=nibco&type=8-K"
     "&dateb=&owner=include&count=10&search_text=&output=atom"
 )

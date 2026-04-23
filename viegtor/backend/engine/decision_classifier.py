@@ -1,10 +1,9 @@
 """Decision Classifier — pure Python math, zero LLM calls.
 
 Applies source coefficient weights to routing factors and routes each signal
-to one of four strategic decisions: BUILD / INVEST / ADJUST / IGNORE.
+to one of three strategic decisions: BUILD / INVEST / IGNORE.
 
 Decision logic (evaluated in priority order):
-  ADJUST  — high timing urgency: competitor is moving NOW, Viega must react
   BUILD   — high benefit + quality: clear unmet demand or market gap
   INVEST  — high tech direction: material or technology paradigm shift
   IGNORE  — below minimum quality gate, or no strong signal in any axis
@@ -23,8 +22,6 @@ logger = logging.getLogger(__name__)
 # Weighted thresholds — tuned for Viega's risk/opportunity profile.
 # After tribunal feedback these can be adjusted via the coefficient_adjuster.
 _QUALITY_GATE = 0.30         # minimum quality*weight to consider any decision
-_ADJUST_TIMING = 0.60        # timing urgency threshold for ADJUST
-_ADJUST_QUALITY = 0.48       # minimum quality for ADJUST
 _BUILD_BENEFIT = 0.60        # benefit threshold for BUILD
 _BUILD_QUALITY = 0.50        # minimum quality for BUILD
 _INVEST_TECH = 0.58          # tech_direction threshold for INVEST
@@ -60,17 +57,6 @@ def classify(factors: RoutingFactors, source_weight: float) -> ClassificationRes
             reasoning=(
                 f"Quality gate not met (weighted quality={wq:.2f} < {_QUALITY_GATE}). "
                 "Signal lacks sufficient source credibility or evidence strength."
-            ),
-            weighted_scores=weighted_scores,
-        )
-
-    # ADJUST: competitor is already moving — highest priority response needed
-    if wt >= _ADJUST_TIMING and wq >= _ADJUST_QUALITY:
-        return ClassificationResult(
-            decision=DecisionType.ADJUST,
-            reasoning=(
-                f"Competitor threat detected (weighted timing={wt:.2f}, quality={wq:.2f}). "
-                "High urgency indicates an active competitive move requiring immediate strategic response."
             ),
             weighted_scores=weighted_scores,
         )

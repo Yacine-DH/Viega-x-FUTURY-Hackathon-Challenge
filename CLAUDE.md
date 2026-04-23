@@ -6,7 +6,7 @@
 
 ## Project Mission
 
-We are building the **Viega Intelligent Compass** — an AI-powered Strategic Intelligence Engine that transforms fragmented public market signals (patents, regulations, competitor PR, commodity prices, tenders) into clear, weighted product decisions (`BUILD / INVEST / ADJUST / IGNORE`) for Viega's Product Managers.
+We are building the **Viega Intelligent Compass** — an AI-powered Strategic Intelligence Engine that transforms fragmented public market signals (patents, regulations, competitor PR, commodity prices, tenders) into clear, weighted product decisions (`BUILD / INVEST / IGNORE`) for Viega's Product Managers.
 The system uses a Dual-Pass Vertex AI reasoning engine, a multi-source async scraping pipeline, an on-page RAG Evidence Chatbot for interactive signal exploration, and a Human-in-the-Loop 5-Persona Tribunal to replace reactive decision-making with proactive, explainable strategic guidance.
 
 ---
@@ -50,10 +50,9 @@ Each validated signal is processed by Gemini 1.5 Pro in two sequential passes, b
 - **Pass 1 — Routing Factors**: Extracts `quality_score`, `benefit_score`, `timing_score`, `tech_direction_score` (used for decision routing).
 - **Pass 2 — UI Display Metrics**: Estimates `relevance`, `impact`, `urgency`, `risk`, `profit_impact` scores (used for frontend display).
 
-The math engine then applies source coefficient weights and routes the signal to one of four decisions:
+The math engine then applies source coefficient weights and routes the signal to one of three decisions:
 - `BUILD` — Gap or unmet demand detected
 - `INVEST` — Material or technology shift opportunity
-- `ADJUST` — Direct competitor threat identified
 - `IGNORE` — Low confidence, hype, or noise
 
 The final enriched `StrategicSignal` payload (decision + all scores + evidence) is written to **Firestore**.
@@ -190,7 +189,7 @@ If Playwright is completely blocked by a target (persistent Cloudflare 403 after
 
 - **Data scope**: Public data ONLY. No internal Viega systems, no confidential competitor data.
 - **Geography**: European Union focus. Prioritize EU regulatory sources and EU competitor filings.
-- **Decision output**: Every processed signal MUST resolve to one of: `BUILD | INVEST | ADJUST | IGNORE`. No ambiguous outputs.
+- **Decision output**: Every processed signal MUST resolve to one of: `BUILD | INVEST | IGNORE`. No ambiguous outputs.
 - **Freshness**: Signals older than 72 hours are invalid. Enforce this at the time filter, not downstream.
 - **Competitors monitored**: Geberit, Conex Bänninger, NIBCO, TECE, SCHELL, Aliaxis, Aalberts.
 

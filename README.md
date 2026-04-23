@@ -265,19 +265,6 @@ All available endpoints:
 
 The response will include the decision (`BUILD / INVEST / ADJUST / IGNORE`), the AI reasoning, and the weighted scores.
 
-**Option B — Trigger all scrapers immediately (no waiting 3 days):**
-
-Open a Python shell from `viegtor/backend/` with the venv active:
-
-```python
-import asyncio
-from config import get_settings
-from scheduler import run_all_scrapers_once
-
-asyncio.run(run_all_scrapers_once(get_settings()))
-```
-
-This fires all 6 scrapers at once, POSTs every fresh signal to the webhook, and runs each through the full AI pipeline.
 
 **Test the RAG chatbot** (once at least one signal is in Firestore):
 

@@ -233,7 +233,7 @@ Return JSON:
     "Volkmar": "<2-3 sentence argument and vote>",
     "Nick": "<2-3 sentence argument and vote>"
   }},
-  "consensus_decision": "<BUILD|INVEST|ADJUST|IGNORE>",
+  "consensus_decision": "<BUILD|INVEST|IGNORE>",
   "consensus_reasoning": "<2-3 sentence synthesis of the debate outcome>",
   "coefficient_adjustments": {{
     "<source_name>": <new_weight_float_0.0_to_1.0>

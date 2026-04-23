@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 # Higher temperature gives the personas more distinct voices without sacrificing JSON structure
 _JSON_CONFIG = make_json_config(temperature=0.4)
 
-_VALID_DECISIONS = {"BUILD", "INVEST", "ADJUST", "IGNORE"}
+_VALID_DECISIONS = {"BUILD", "INVEST", "IGNORE"}
 
 
 async def run_debate(signal: StrategicSignal, user_feedback: str) -> TribunalResponse:

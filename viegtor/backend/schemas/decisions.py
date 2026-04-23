@@ -5,7 +5,6 @@ from pydantic import BaseModel, Field
 class DecisionType(str, Enum):
     BUILD = "BUILD"
     INVEST = "INVEST"
-    ADJUST = "ADJUST"
     IGNORE = "IGNORE"
 
 
