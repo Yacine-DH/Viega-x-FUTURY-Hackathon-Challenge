@@ -102,7 +102,7 @@ export default function Dashboard({ onSignOut, onOpenTrend, onHome }) {
         <aside className="border-r border-zinc-800 overflow-y-auto p-5 flex-shrink-0" style={{ width: sidebarWidth }}>
           <div className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-3">Navigation</div>
           <nav className="space-y-1 mb-8">
-            <NavItem icon={Radar} label="Radar" active count={SIGNALS.length} />
+            <NavItem icon={Radar} label="Radar" active count={signals.length} />
             <NavItem icon={Activity} label="Decisions" count={3} />
             <NavItem icon={TrendingUp} label="Trends" />
             <NavItem icon={Sparkles} label="AI Insights" />

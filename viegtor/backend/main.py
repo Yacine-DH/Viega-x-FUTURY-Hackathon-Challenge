@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from config import get_settings
 from engine.vertex_client import init_vertex_ai
@@ -38,6 +39,14 @@ app = FastAPI(
     description="Strategic Intelligence Engine — BUILD / INVEST / ADJUST / IGNORE",
     version="0.1.0",
     lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(webhook.router)

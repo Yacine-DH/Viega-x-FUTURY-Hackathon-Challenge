@@ -4,29 +4,74 @@ import { MessageSquare, X } from 'lucide-react';
 import { YELLOW, REC_STYLES } from '../constants/styles';
 import { PERSONAS } from '../constants/personas';
 import { applyPreference, getConfidenceAdjusted } from '../lib/preference';
+import { summonTribunal } from '../lib/api';
+
+// Stagger each persona vote card with CSS animation delay
+const STAGGER_MS = 250;
+
+function PersonaVoteCard({ personaId, vote, index }) {
+  const persona = PERSONAS[personaId] || {
+    name: personaId,
+    role: '',
+    color: '#71717a',
+    icon: Users,
+  };
+  const Icon = persona.icon;
+  const rec = REC_STYLES[vote];
+
+  return (
+    <div
+      className="flex items-center gap-3 p-3 rounded-xl border border-zinc-800"
+      style={{
+        backgroundColor: '#18181b',
+        opacity: 0,
+        animation: `debateFade 0.4s ease-out forwards`,
+        animationDelay: `${index * STAGGER_MS}ms`,
+      }}
+    >
+      <div
+        className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center"
+        style={{ backgroundColor: persona.color + '20', border: `1px solid ${persona.color}40` }}
+      >
+        <Icon className="w-4 h-4" style={{ color: persona.color }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-semibold text-white">{persona.name}</div>
+        <div className="text-zinc-500 uppercase tracking-wide" style={{ fontSize: 10 }}>{persona.role}</div>
+      </div>
+      <div
+        className="px-2.5 py-1 rounded-lg text-xs font-bold"
+        style={{ backgroundColor: rec.bg, color: rec.text }}
+      >
+        {vote}
+      </div>
+    </div>
+  );
+}
 
 export default function DebateModal({ signal, activePersonas, preference, onClose }) {
-  const [visibleCount, setVisibleCount] = useState(0);
-  const messages = signal.debate.filter((m) => activePersonas[m.persona]);
+  const [feedback, setFeedback] = useState('');
+  const [status, setStatus] = useState('idle'); // idle | loading | done | error
+  const [result, setResult] = useState(null);
+  const [errorMsg, setErrorMsg] = useState('');
+
   const adjustedRec = applyPreference(signal, preference);
   const adjustedConf = getConfidenceAdjusted(signal, preference);
-
-  useEffect(() => {
-    setVisibleCount(0);
-    const interval = setInterval(() => {
-      setVisibleCount((c) => {
-        if (c >= messages.length) {
-          clearInterval(interval);
-          return c;
-        }
-        return c + 1;
-      });
-    }, 700);
-    return () => clearInterval(interval);
-  }, [signal.id, messages.length]);
-
   const rec = REC_STYLES[adjustedRec];
   const RecIcon = rec.icon;
+
+  async function handleSummon() {
+    setStatus('loading');
+    setErrorMsg('');
+    try {
+      const data = await summonTribunal(signal.id, feedback || 'Please debate this signal.');
+      setResult(data);
+      setStatus('done');
+    } catch (err) {
+      setErrorMsg(err.message);
+      setStatus('error');
+    }
+  }
 
   return (
     <Dialog.Root open onOpenChange={(o) => !o && onClose()}>
