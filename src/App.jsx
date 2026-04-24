@@ -19,7 +19,9 @@ export default function App() {
   const keyframes =
     '@keyframes debateFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
     '@keyframes glowPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 204, 0, 0.4); } 50% { box-shadow: 0 0 0 8px rgba(255, 204, 0, 0); } }' +
-    '@keyframes recommendationPop { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }';
+    '@keyframes recommendationPop { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }' +
+    '@keyframes panelSlideIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }' +
+    '@keyframes hintPulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }';
 
   return (
     <>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Compass, Radar, MessageSquare, Sparkles, TrendingUp, Activity,
-  Bell, Search, Settings, LogOut, Filter, ChevronRight, ExternalLink,
+  Bell, Search, Settings, LogOut, Filter, ChevronRight, ExternalLink, X,
 } from 'lucide-react';
 import { YELLOW, YELLOW_HOVER, REC_STYLES } from '../constants/styles';
 import { PERSONAS } from '../constants/personas';
@@ -19,7 +19,7 @@ import Logo from '../components/Logo';
 export default function Dashboard({ onSignOut }) {
   const [onboarded, setOnboarded] = useState(false);
   const [focus, setFocus] = useState(null);
-  const [selectedId, setSelectedId] = useState(1);
+  const [selectedId, setSelectedId] = useState(null);
   const [debateOpen, setDebateOpen] = useState(false);
   const [activePersonas, setActivePersonas] = useState({ david: true, josef: true, steffen: true });
   const [typeFilter, setTypeFilter] = useState('All');
@@ -175,7 +175,7 @@ export default function Dashboard({ onSignOut }) {
           </div>
         </aside>
 
-        <main className="col-span-5 border-r border-zinc-800 overflow-y-auto">
+        <main className={`${selected ? 'col-span-5 border-r border-zinc-800' : 'col-span-9'} overflow-y-auto transition-all duration-300`}>
           <div
             className="sticky top-0 z-10 px-5 py-4 border-b border-zinc-800"
             style={{ backgroundColor: 'rgba(9,9,11,0.9)', backdropFilter: 'blur(8px)' }}
@@ -227,23 +227,36 @@ export default function Dashboard({ onSignOut }) {
           </div>
         </main>
 
-        <aside className="col-span-4 overflow-y-auto">
-          {selected && (
+        {selected && (
+        <aside
+          key={'panel-' + selectedId}
+          className="col-span-4 overflow-y-auto border-l border-zinc-800"
+          style={{ animation: 'panelSlideIn 0.3s ease-out' }}
+        >
             <div className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Compass className="w-4 h-4" style={{ color: YELLOW }} />
                   <h2 className="font-bold text-white">The Compass</h2>
                 </div>
-                {shifted && (
-                  <div
-                    className="flex items-center gap-1 px-2 py-0.5 rounded"
-                    style={{ fontSize: 10, backgroundColor: 'rgba(255,204,0,0.1)', color: YELLOW }}
+                <div className="flex items-center gap-2">
+                  {shifted && (
+                    <div
+                      className="flex items-center gap-1 px-2 py-0.5 rounded"
+                      style={{ fontSize: 10, backgroundColor: 'rgba(255,204,0,0.1)', color: YELLOW }}
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      STRATEGY-ADJUSTED
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setSelectedId(null)}
+                    className="p-1 rounded-md text-zinc-500 hover:text-white hover:bg-zinc-800 transition"
+                    title="Close panel"
                   >
-                    <Sparkles className="w-3 h-3" />
-                    STRATEGY-ADJUSTED
-                  </div>
-                )}
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               <div
@@ -337,8 +350,8 @@ export default function Dashboard({ onSignOut }) {
                 </button>
               </div>
             </div>
-          )}
-        </aside>
+          </aside>
+        )}
       </div>
 
       {debateOpen && selected && (

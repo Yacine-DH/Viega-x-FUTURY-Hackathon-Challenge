@@ -12,10 +12,24 @@ export default function SignalCard({ signal, active, preference, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="w-full text-left p-4 rounded-xl border transition-all group"
+      className="w-full text-left p-4 rounded-xl border transition-all group cursor-pointer"
       style={{
         borderColor: active ? YELLOW : '#27272a',
         backgroundColor: active ? '#18181b' : '#09090b',
+        transform: active ? 'translateY(-2px)' : 'translateY(0)',
+        boxShadow: active ? '0 8px 24px -12px rgba(255,204,0,0.35)' : 'none',
+      }}
+      onMouseEnter={(e) => {
+        if (active) return;
+        e.currentTarget.style.borderColor = '#3f3f46';
+        e.currentTarget.style.backgroundColor = '#131316';
+        e.currentTarget.style.transform = 'translateY(-2px)';
+      }}
+      onMouseLeave={(e) => {
+        if (active) return;
+        e.currentTarget.style.borderColor = '#27272a';
+        e.currentTarget.style.backgroundColor = '#09090b';
+        e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
       <div className="flex items-center gap-2 mb-3">
