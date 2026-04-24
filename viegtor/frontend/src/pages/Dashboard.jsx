@@ -2,11 +2,13 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Radar, TrendingUp, Activity, Sparkles,
   Bell, Search, Settings, LogOut, Filter, MapPin,
-  ZoomIn, ZoomOut, RotateCcw,
+  ZoomIn, ZoomOut,
 } from 'lucide-react';
 import { YELLOW } from '../constants/styles';
 import { SIGNALS } from '../constants/signals';
 import { computeTier } from '../lib/tier';
+import { getSignals } from '../lib/api';
+import { adaptSignals } from '../lib/signalAdapter';
 import NavItem from '../components/NavItem';
 import TierSection from '../components/TierSection';
 import FiledSection from '../components/FiledSection';
@@ -14,13 +16,20 @@ import FeedbackChatBar from '../components/FeedbackChatBar';
 import Logo from '../components/Logo';
 
 export default function Dashboard({ onSignOut, onOpenTrend, onHome }) {
+  const [signals, setSignals] = useState(SIGNALS);
   const [typeFilter, setTypeFilter] = useState('All');
   const [zoom, setZoom] = useState(1);
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [dragging, setDragging] = useState(false);
 
+  useEffect(() => {
+    getSignals()
+      .then((data) => { if (data.length > 0) setSignals(adaptSignals(data)); })
+      .catch(() => { /* keep mock SIGNALS */ });
+  }, []);
+
   const onDrag = useCallback((e) => {
-    setSidebarWidth((w) => Math.min(520, Math.max(200, e.clientX)));
+    setSidebarWidth(() => Math.min(520, Math.max(200, e.clientX)));
   }, []);
 
   useEffect(() => {
@@ -42,8 +51,8 @@ export default function Dashboard({ onSignOut, onOpenTrend, onHome }) {
   const zoomOut = () => setZoom((z) => Math.max(0.6, +(z - 0.1).toFixed(2)));
   const zoomReset = () => setZoom(1);
 
-  const types = ['All'].concat(Array.from(new Set(SIGNALS.map((s) => s.type))));
-  const filteredSignals = typeFilter === 'All' ? SIGNALS : SIGNALS.filter((s) => s.type === typeFilter);
+  const types = ['All'].concat(Array.from(new Set(signals.map((s) => s.type))));
+  const filteredSignals = typeFilter === 'All' ? signals : signals.filter((s) => s.type === typeFilter);
 
   const tiered = useMemo(() => {
     const groups = { ACT: [], TRACK: [], FIELD: [] };
@@ -53,7 +62,7 @@ export default function Dashboard({ onSignOut, onOpenTrend, onHome }) {
     return groups;
   }, [filteredSignals]);
 
-  const buildCount = SIGNALS.filter((s) => s.recommendation === 'BUILD').length;
+  const buildCount = signals.filter((s) => s.recommendation === 'BUILD').length;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white" style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif' }}>
@@ -102,7 +111,7 @@ export default function Dashboard({ onSignOut, onOpenTrend, onHome }) {
         <aside className="border-r border-zinc-800 overflow-y-auto p-5 flex-shrink-0" style={{ width: sidebarWidth }}>
           <div className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-3">Navigation</div>
           <nav className="space-y-1 mb-8">
-            <NavItem icon={Radar} label="Radar" active count={signals.length} />
+            <NavItem icon={Radar} label="Radar" active count={filteredSignals.length} />
             <NavItem icon={Activity} label="Decisions" count={3} />
             <NavItem icon={TrendingUp} label="Trends" />
             <NavItem icon={Sparkles} label="AI Insights" />
@@ -118,7 +127,7 @@ export default function Dashboard({ onSignOut, onOpenTrend, onHome }) {
             <Sparkles className="w-4 h-4 mb-2" style={{ color: YELLOW }} />
             <div className="text-xs font-semibold text-white mb-1">Today Pulse</div>
             <div className="text-zinc-400 leading-relaxed" style={{ fontSize: 11 }}>
-              {buildCount} BUILD signals detected across monitored markets.
+              {buildCount} BUILD signal{buildCount !== 1 ? 's' : ''} detected across monitored markets.
             </div>
           </div>
         </aside>
@@ -185,7 +194,7 @@ export default function Dashboard({ onSignOut, onOpenTrend, onHome }) {
       </div>
 
       <div className="fixed bottom-4 z-40" style={{ left: 16, width: Math.max(260, sidebarWidth - 32) }}>
-        <FeedbackChatBar signals={SIGNALS} />
+        <FeedbackChatBar signals={signals} />
       </div>
     </div>
   );

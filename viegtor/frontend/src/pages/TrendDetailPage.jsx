@@ -2,13 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   ArrowLeft, Download, Users, Shield, Clock, Activity,
   AlertTriangle, TrendingUp, DollarSign, CheckCircle2, XCircle, MinusCircle,
-  Rocket, Beaker, Ban, Globe, FileText, MessageSquare, Clock3,
+  Globe, FileText, MessageSquare, Clock3,
   ZoomIn, ZoomOut,
 } from 'lucide-react';
 import { YELLOW, REC_STYLES, TYPE_COLORS } from '../constants/styles';
 import { SIGNALS } from '../constants/signals';
 import Logo from '../components/Logo';
 import FeedbackChatBar from '../components/FeedbackChatBar';
+import DebateModal from '../components/DebateModal';
 
 const levelLabel = (v) => (v >= 75 ? 'High' : v >= 50 ? 'Medium' : 'Low');
 const levelColor = (v) => (v >= 75 ? '#22c55e' : v >= 50 ? '#eab308' : '#ef4444');
@@ -153,6 +154,7 @@ function Block({ icon: Icon, title, score, color, points }) {
 }
 
 export default function TrendDetailPage({ signal, onBack }) {
+  const [showTribunal, setShowTribunal] = useState(false);
   const [zoom, setZoom] = useState(1);
   const zoomIn = () => setZoom((z) => Math.min(1.5, +(z + 0.1).toFixed(2)));
   const zoomOut = () => setZoom((z) => Math.max(0.6, +(z - 0.1).toFixed(2)));
@@ -216,6 +218,14 @@ export default function TrendDetailPage({ signal, onBack }) {
               <button onClick={zoomReset} className="px-1.5 text-[11px] font-mono text-zinc-400 hover:text-white" title="Reset zoom">{Math.round(zoom * 100)}%</button>
               <button onClick={zoomIn} className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800" title="Zoom in"><ZoomIn className="w-3.5 h-3.5" /></button>
             </div>
+            <button
+              onClick={() => setShowTribunal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-semibold transition"
+              style={{ borderColor: 'rgba(255,204,0,0.4)', backgroundColor: 'rgba(255,204,0,0.08)', color: YELLOW }}
+            >
+              <MessageSquare className="w-4 h-4" />
+              Summon Tribunal
+            </button>
             <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 text-sm text-zinc-300 hover:text-white hover:border-zinc-700">
               <Download className="w-4 h-4" />
               Export
@@ -412,6 +422,10 @@ export default function TrendDetailPage({ signal, onBack }) {
       <div className="fixed bottom-4 z-40" style={{ left: 24, width: Math.max(260, inputsWidth) }}>
         <FeedbackChatBar signals={SIGNALS} initialAttachedId={signal.id} lockAttachment />
       </div>
+
+      {showTribunal && (
+        <DebateModal signal={signal} onClose={() => setShowTribunal(false)} />
+      )}
     </div>
   );
 }

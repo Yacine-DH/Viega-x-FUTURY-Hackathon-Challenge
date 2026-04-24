@@ -2,16 +2,15 @@ import React, { useState } from 'react';
 import HomePage from './pages/HomePage';
 import Dashboard from './pages/Dashboard';
 import TrendDetailPage from './pages/TrendDetailPage';
-import { SIGNALS } from './constants/signals';
 
 export default function App() {
   const [view, setView] = useState('home');
-  const [trendId, setTrendId] = useState(null);
+  const [trendSignal, setTrendSignal] = useState(null);
 
   const enter = () => setView('app');
-  const signOut = () => { setView('home'); setTrendId(null); };
-  const openTrend = (id) => { setTrendId(id); setView('trend'); };
-  const backToDashboard = () => { setTrendId(null); setView('app'); };
+  const signOut = () => { setView('home'); setTrendSignal(null); };
+  const openTrend = (signal) => { setTrendSignal(signal); setView('trend'); };
+  const backToDashboard = () => { setTrendSignal(null); setView('app'); };
 
   const keyframes =
     '@keyframes debateFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
@@ -22,14 +21,12 @@ export default function App() {
     '@keyframes collapseDown { from { height: 0; opacity: 0; } to { height: var(--radix-collapsible-content-height); opacity: 1; } }' +
     '@keyframes collapseUp { from { height: var(--radix-collapsible-content-height); opacity: 1; } to { height: 0; opacity: 0; } }';
 
-  const trend = SIGNALS.find((s) => s.id === trendId);
-
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: keyframes }} />
       {view === 'home' && <HomePage onEnterCO={enter} onEnterExpert={enter} />}
       {view === 'app' && <Dashboard onSignOut={signOut} onOpenTrend={openTrend} onHome={signOut} />}
-      {view === 'trend' && trend && <TrendDetailPage signal={trend} onBack={backToDashboard} />}
+      {view === 'trend' && trendSignal && <TrendDetailPage signal={trendSignal} onBack={backToDashboard} />}
     </>
   );
 }

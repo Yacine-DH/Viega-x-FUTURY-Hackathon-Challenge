@@ -45,7 +45,7 @@ export function adaptSignal(s) {
     reasoning,
     evidence_trail: s.evidence_trail,
     url: s.url,
-    tier: s.tier,                     // ACT | TRACK | FILED
+    tier: s.tier === 'FILED' ? 'FIELD' : s.tier,  // normalize backend FILED → frontend FIELD
     tier_reasoning: s.tier_reasoning,
     ui_metrics: s.ui_metrics ? {
       relevance: s.ui_metrics.relevance,

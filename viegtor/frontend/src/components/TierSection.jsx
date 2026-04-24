@@ -44,7 +44,7 @@ export default function TierSection({ tier, signals, onCardClick, activeId }) {
             key={s.id}
             signal={s}
             active={activeId === s.id}
-            onClick={() => onCardClick(s.id)}
+            onClick={() => onCardClick(s)}
             variant={variant}
           />
         ))}

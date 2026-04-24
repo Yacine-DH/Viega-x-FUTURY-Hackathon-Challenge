@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { MessageSquare, X } from 'lucide-react';
-import { YELLOW, REC_STYLES } from '../constants/styles';
+import { MessageSquare, X, Users } from 'lucide-react';
+import { YELLOW } from '../constants/styles';
 import { PERSONAS } from '../constants/personas';
 import { summonTribunal } from '../lib/api';
 
@@ -66,11 +66,9 @@ function ArgumentBubble({ personaId, argument, index }) {
 
 export default function DebateModal({ signal, onClose }) {
   const [feedback, setFeedback] = useState('');
-  const [status, setStatus] = useState('idle'); // idle | loading | done | error
+  const [status, setStatus] = useState('idle');
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
-
-  const personaCount = result ? Object.keys(result.persona_arguments).length : 0;
 
   async function handleSummon() {
     setStatus('loading');
@@ -108,15 +106,12 @@ export default function DebateModal({ signal, onClose }) {
                 </Dialog.Title>
                 <div className="flex items-center gap-2 mt-2">
                   <MessageSquare className="w-4 h-4" style={{ color: YELLOW }} />
-                  <span
-                    className="text-xs font-bold uppercase tracking-wider"
-                    style={{ color: YELLOW }}
-                  >
-                    Persona Debate
+                  <span className="text-xs font-bold uppercase tracking-wider" style={{ color: YELLOW }}>
+                    Persona Tribunal
                   </span>
                 </div>
                 <Dialog.Description className="sr-only">
-                  Persona debate on {signal.title}
+                  5-persona expert debate on {signal.title}
                 </Dialog.Description>
               </div>
               <Dialog.Close asChild>
@@ -127,114 +122,103 @@ export default function DebateModal({ signal, onClose }) {
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {messages.length === 0 ? (
-                <div className="text-center py-12 text-zinc-500">
-                  <MessageSquare className="w-8 h-8 mx-auto mb-3 opacity-50" />
-                  <p>No personas active. Toggle one on from the sidebar to hear the debate.</p>
-                </div>
-              ) : (
-                messages.slice(0, visibleCount).map((msg, idx) => {
-                  const p = PERSONAS[msg.persona];
-                  const Icon = p.icon;
-                  return (
-                    <div
-                      key={idx}
-                      className="flex gap-3"
-                      style={{ opacity: 0, animation: 'debateFade 0.4s ease-out forwards' }}
-                    >
-                      <div
-                        className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center"
-                        style={{
-                          backgroundColor: p.color + '20',
-                          border: '1px solid ' + p.color + '40',
-                        }}
-                      >
-                        <Icon className="w-4 h-4" style={{ color: p.color }} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-semibold text-white">{p.name}</span>
-                          <span className="text-xs text-zinc-500">{p.role}</span>
-                        </div>
-                        <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-zinc-300 leading-relaxed">
-                          {msg.message}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-              {visibleCount < messages.length && messages.length > 0 && (
-                <div className="flex gap-3 items-center text-zinc-500 text-sm pl-12">
-                  <div className="flex gap-1">
-                    <span
-                      className="w-1.5 h-1.5 rounded-full bg-zinc-600 animate-bounce"
-                      style={{ animationDelay: '0ms' }}
-                    />
-                    <span
-                      className="w-1.5 h-1.5 rounded-full bg-zinc-600 animate-bounce"
-                      style={{ animationDelay: '150ms' }}
-                    />
-                    <span
-                      className="w-1.5 h-1.5 rounded-full bg-zinc-600 animate-bounce"
-                      style={{ animationDelay: '300ms' }}
+              {status === 'idle' && (
+                <div className="space-y-4">
+                  <p className="text-sm text-zinc-400 leading-relaxed">
+                    Five expert personas will analyze the evidence behind this signal from their unique perspectives and synthesize actionable feedback for your team.
+                  </p>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">
+                      Your concern or context (optional)
+                    </label>
+                    <textarea
+                      value={feedback}
+                      onChange={(e) => setFeedback(e.target.value)}
+                      placeholder="e.g. I'm concerned about R&D cost vs. timeline..."
+                      rows={3}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-700 resize-none"
                     />
                   </div>
+                </div>
+              )}
+
+              {status === 'loading' && (
+                <div className="flex flex-col items-center justify-center py-12 gap-4">
+                  <div className="flex gap-1.5">
+                    {[0, 150, 300].map((delay) => (
+                      <span
+                        key={delay}
+                        className="w-2 h-2 rounded-full bg-zinc-500 animate-bounce"
+                        style={{ animationDelay: `${delay}ms` }}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-sm text-zinc-500">Convening the tribunal…</p>
+                </div>
+              )}
+
+              {status === 'error' && (
+                <div className="rounded-xl border border-red-900/50 p-4 text-sm text-red-400" style={{ backgroundColor: 'rgba(127,29,29,0.15)' }}>
+                  {errorMsg || 'An unexpected error occurred. Please try again.'}
+                </div>
+              )}
+
+              {status === 'done' && result && (
+                <div className="space-y-4">
+                  {Object.entries(result.persona_arguments).map(([personaId, argument], idx) => (
+                    <ArgumentBubble
+                      key={personaId}
+                      personaId={personaId}
+                      argument={argument}
+                      index={idx}
+                    />
+                  ))}
                 </div>
               )}
             </div>
 
-            {visibleCount >= messages.length && messages.length > 0 && (
-              <div className="p-6 border-t border-zinc-800">
-                <div className="flex items-center justify-between">
+            <div className="p-6 border-t border-zinc-800">
+              {status === 'idle' && (
+                <button
+                  onClick={handleSummon}
+                  className="w-full py-2.5 rounded-xl font-bold text-sm transition"
+                  style={{ backgroundColor: YELLOW, color: '#000' }}
+                >
+                  Summon Tribunal
+                </button>
+              )}
+
+              {status === 'error' && (
+                <button
+                  onClick={() => setStatus('idle')}
+                  className="w-full py-2.5 rounded-xl font-bold text-sm border border-zinc-700 text-zinc-300 hover:text-white transition"
+                >
+                  Try Again
+                </button>
+              )}
+
+              {status === 'done' && result && (
+                <div className="space-y-3">
                   <div>
-                    <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">
-                      Synthesized Recommendation
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="uppercase tracking-wider font-semibold text-zinc-400">Logical Coherence</span>
+                      <span className="text-zinc-500">
+                        {result.logical_score >= 0.7 ? 'Stored to knowledge base' : 'Below storage threshold'}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold"
-                        style={{ backgroundColor: rec.bg, color: rec.text }}
-                      >
-                        <RecIcon className="w-4 h-4" />
-                        {rec.label}
-                      </div>
-                      <span className="text-sm text-zinc-400">{adjustedConf}% confidence</span>
-                    </div>
+                    <ScoreMeter score={result.logical_score} />
                   </div>
-                  <div className="flex gap-1.5">
-                    {Object.entries(signal.personaVotes)
-                      .filter((entry) => activePersonas[entry[0]])
-                      .map((entry) => {
-                        const pid = entry[0];
-                        const vote = entry[1];
-                        const p = PERSONAS[pid];
-                        const vrec = REC_STYLES[vote];
-                        return (
-                          <div key={pid} className="text-center">
-                            <div
-                              className="w-10 h-10 rounded-full flex items-center justify-center font-bold"
-                              style={{
-                                backgroundColor: vrec.bg,
-                                color: vrec.text,
-                                fontSize: 10,
-                              }}
-                            >
-                              {p.name[0]}
-                            </div>
-                            <div
-                              className="text-zinc-500 mt-1"
-                              style={{ fontSize: 9 }}
-                            >
-                              {vote}
-                            </div>
-                          </div>
-                        );
-                      })}
+                  <div>
+                    <div className="text-xs uppercase tracking-wider text-zinc-400 mb-1.5 font-semibold">
+                      Synthesized Feedback
+                    </div>
+                    <p className="text-sm text-zinc-300 leading-relaxed bg-zinc-950 border border-zinc-800 rounded-xl p-4">
+                      {result.consensus_feedback}
+                    </p>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </Dialog.Content>
       </Dialog.Portal>
