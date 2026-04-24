@@ -1,76 +1,44 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Compass, Radar, MessageSquare, Sparkles, TrendingUp, Activity,
-  Bell, Search, Settings, LogOut, Filter, ChevronRight, ExternalLink, X,
+  Radar, TrendingUp, Activity, Sparkles,
+  Bell, Search, Settings, LogOut, Filter, MapPin,
 } from 'lucide-react';
-import { YELLOW, YELLOW_HOVER, REC_STYLES } from '../constants/styles';
-import { PERSONAS } from '../constants/personas';
+import { YELLOW } from '../constants/styles';
 import { SIGNALS } from '../constants/signals';
-import { applyPreference, getConfidenceAdjusted, signalBaseline } from '../lib/preference';
 import { computeTier } from '../lib/tier';
-import ConfidenceRing from '../components/ConfidenceRing';
 import NavItem from '../components/NavItem';
-import PreferenceToggle from '../components/PreferenceToggle';
 import TierSection from '../components/TierSection';
 import FiledSection from '../components/FiledSection';
-import DebateModal from '../components/DebateModal';
+import FeedbackChatBar from '../components/FeedbackChatBar';
 import Logo from '../components/Logo';
 
-export default function Dashboard({ onSignOut }) {
-  const [selectedId, setSelectedId] = useState(null);
-  const [debateOpen, setDebateOpen] = useState(false);
-  const [activePersonas, setActivePersonas] = useState({ david: true, josef: true, steffen: true });
+export default function Dashboard({ onSignOut, onOpenTrend, onHome }) {
   const [typeFilter, setTypeFilter] = useState('All');
-  const [preference, setPreference] = useState('balanced');
 
-  const selected = SIGNALS.find((s) => s.id === selectedId);
   const types = ['All'].concat(Array.from(new Set(SIGNALS.map((s) => s.type))));
   const filteredSignals = typeFilter === 'All' ? SIGNALS : SIGNALS.filter((s) => s.type === typeFilter);
 
   const tiered = useMemo(() => {
     const groups = { ACT: [], TRACK: [], FIELD: [] };
     filteredSignals.forEach((s) => {
-      const rec = applyPreference(s, preference);
-      const conf = getConfidenceAdjusted(s, preference);
-      groups[computeTier(rec, conf)].push(s);
+      groups[computeTier(s.recommendation, s.confidence)].push(s);
     });
     return groups;
-  }, [filteredSignals, preference]);
+  }, [filteredSignals]);
 
-  const togglePersona = (id) => {
-    setActivePersonas((p) => {
-      const next = Object.assign({}, p);
-      next[id] = !p[id];
-      return next;
-    });
-  };
-
-  const openSignalWithDebate = (id) => {
-    setSelectedId(id);
-    setDebateOpen(true);
-  };
-
-  const adjustedRec = selected ? applyPreference(selected, preference) : null;
-  const adjustedConf = selected ? getConfidenceAdjusted(selected, preference) : 0;
-  const shifted = selected && adjustedRec !== selected.recommendation;
-  const rec = adjustedRec ? REC_STYLES[adjustedRec] : null;
-  const RecIcon = rec ? rec.icon : null;
-
-  const buildCount = SIGNALS.filter((s) => applyPreference(s, preference) === 'BUILD').length;
-  const activeCount = Object.values(activePersonas).filter(Boolean).length;
+  const buildCount = SIGNALS.filter((s) => s.recommendation === 'BUILD').length;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white" style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif' }}>
-      <header
-        className="sticky top-0 z-30"
-        style={{ backgroundColor: 'transparent' }}
-      >
+      <header className="sticky top-0 z-30" style={{ backgroundColor: 'transparent' }}>
         <div className="flex items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-3">
+          <button
+            onClick={onHome}
+            className="flex items-center gap-3 rounded-lg p-1 -m-1 hover:bg-zinc-900 transition"
+            title="Back to home"
+          >
             <Logo size={24} />
-          </div>
-
-          <PreferenceToggle value={preference} onChange={setPreference} />
+          </button>
 
           <div className="flex items-center gap-2">
             <div className="relative">
@@ -108,59 +76,8 @@ export default function Dashboard({ onSignOut }) {
             <NavItem icon={Sparkles} label="AI Insights" />
           </nav>
 
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-xs font-bold uppercase tracking-wider text-zinc-500">AI Personas</div>
-            <span className="text-zinc-600" style={{ fontSize: 10 }}>{activeCount}/3 active</span>
-          </div>
-          <div className="space-y-2">
-            {Object.values(PERSONAS).map((p) => {
-              const Icon = p.icon;
-              const isActive = activePersonas[p.id];
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => togglePersona(p.id)}
-                  className="w-full text-left p-3 rounded-xl border transition-all"
-                  style={{
-                    borderColor: isActive ? '#3f3f46' : '#18181b',
-                    backgroundColor: isActive ? '#18181b' : '#09090b',
-                    opacity: isActive ? 1 : 0.5,
-                  }}
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center"
-                      style={{
-                        backgroundColor: isActive ? p.color + '20' : '#18181b',
-                        border: '1px solid ' + (isActive ? p.color + '40' : '#27272a'),
-                      }}
-                    >
-                      <Icon className="w-4 h-4" style={{ color: isActive ? p.color : '#52525b' }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-sm text-white">{p.name}</span>
-                        <div
-                          className="w-8 h-4 rounded-full relative transition-colors"
-                          style={{ backgroundColor: isActive ? YELLOW : '#27272a' }}
-                        >
-                          <div
-                            className="absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all"
-                            style={{ left: isActive ? 16 : 2 }}
-                          />
-                        </div>
-                      </div>
-                      <div className="text-zinc-500 uppercase tracking-wide mt-0.5" style={{ fontSize: 10 }}>{p.role}</div>
-                      <div className="text-zinc-400 mt-1 leading-snug italic" style={{ fontSize: 11 }}>{p.tagline}</div>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
           <div
-            className="mt-8 p-4 rounded-xl border"
+            className="mt-4 p-4 rounded-xl border"
             style={{
               background: 'linear-gradient(135deg, rgba(255,204,0,0.1), transparent)',
               borderColor: 'rgba(255,204,0,0.2)',
@@ -169,12 +86,12 @@ export default function Dashboard({ onSignOut }) {
             <Sparkles className="w-4 h-4 mb-2" style={{ color: YELLOW }} />
             <div className="text-xs font-semibold text-white mb-1">Today Pulse</div>
             <div className="text-zinc-400 leading-relaxed" style={{ fontSize: 11 }}>
-              {buildCount} BUILD signals detected under {preference} strategy.
+              {buildCount} BUILD signals detected across monitored markets.
             </div>
           </div>
         </aside>
 
-        <main className={`${selected ? 'col-span-5 border-r border-zinc-800' : 'col-span-9'} overflow-y-auto transition-all duration-300`}>
+        <main className="col-span-9 overflow-y-auto relative">
           <div
             className="sticky top-0 z-10 px-5 py-4 border-b border-zinc-800"
             style={{ backgroundColor: 'rgba(9,9,11,0.9)', backdropFilter: 'blur(8px)' }}
@@ -184,6 +101,13 @@ export default function Dashboard({ onSignOut }) {
                 <Radar className="w-4 h-4" style={{ color: YELLOW }} />
                 <h2 className="font-bold text-white">Market Radar</h2>
                 <span className="text-xs text-zinc-500">{filteredSignals.length} signals</span>
+                <button
+                  className="ml-2 flex items-center gap-1 px-2 py-1 rounded-md border border-zinc-800 text-xs text-zinc-400 hover:text-white hover:border-zinc-700 transition"
+                  title="Radar location (configure)"
+                >
+                  <MapPin className="w-3.5 h-3.5" style={{ color: YELLOW }} />
+                  <span>EU-27 · DACH</span>
+                </button>
               </div>
               <button className="text-xs text-zinc-400 hover:text-white flex items-center gap-1">
                 <Filter className="w-3 h-3" />
@@ -213,160 +137,17 @@ export default function Dashboard({ onSignOut }) {
             </div>
           </div>
 
-          <div className="p-5">
-            <TierSection
-              tier="ACT"
-              signals={tiered.ACT}
-              preference={preference}
-              onCardClick={openSignalWithDebate}
-              activeId={selectedId}
-            />
-            <TierSection
-              tier="TRACK"
-              signals={tiered.TRACK}
-              preference={preference}
-              onCardClick={openSignalWithDebate}
-              activeId={selectedId}
-            />
+          <div className="p-5 pb-32">
+            <TierSection tier="ACT" signals={tiered.ACT} onCardClick={onOpenTrend} />
+            <TierSection tier="TRACK" signals={tiered.TRACK} onCardClick={onOpenTrend} />
             <FiledSection signals={tiered.FIELD} />
           </div>
+
+          <div className="sticky bottom-0 left-0 right-0 px-5 py-4" style={{ background: 'linear-gradient(to top, rgba(9,9,11,0.98) 60%, rgba(9,9,11,0))' }}>
+            <FeedbackChatBar signals={SIGNALS} />
+          </div>
         </main>
-
-        {selected && (
-          <aside
-            key={'panel-' + selectedId}
-            className="col-span-4 overflow-y-auto border-l border-zinc-800"
-            style={{ animation: 'panelSlideIn 0.3s ease-out' }}
-          >
-            <div className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Compass className="w-4 h-4" style={{ color: YELLOW }} />
-                  <h2 className="font-bold text-white">The Compass</h2>
-                </div>
-                <div className="flex items-center gap-2">
-                  {shifted && (
-                    <div
-                      className="flex items-center gap-1 px-2 py-0.5 rounded"
-                      style={{ fontSize: 10, backgroundColor: 'rgba(255,204,0,0.1)', color: YELLOW }}
-                    >
-                      <Sparkles className="w-3 h-3" />
-                      STRATEGY-ADJUSTED
-                    </div>
-                  )}
-                  <button
-                    onClick={() => setSelectedId(null)}
-                    className="p-1 rounded-md text-zinc-500 hover:text-white hover:bg-zinc-800 transition"
-                    title="Close panel"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div
-                key={preference + '-' + selectedId}
-                className="border border-zinc-800 rounded-2xl p-5 mb-4"
-                style={{
-                  background: 'linear-gradient(135deg, #18181b, #09090b)',
-                  animation: 'recommendationPop 0.5s ease-out',
-                }}
-              >
-                <div className="text-xs text-zinc-500 mb-1 uppercase tracking-wider">Recommendation</div>
-                <div
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-lg mb-4"
-                  style={{
-                    backgroundColor: rec.bg,
-                    color: rec.text,
-                    animation: 'glowPulse 2s infinite',
-                  }}
-                >
-                  <RecIcon className="w-5 h-5" />
-                  {rec.label}
-                </div>
-
-                {shifted && (
-                  <div className="text-xs text-zinc-500 mb-3 flex items-center gap-1">
-                    <span>Baseline:</span>
-                    <span className="font-mono" style={{ color: '#71717a' }}>{signalBaseline(selected)}</span>
-                    <span>·</span>
-                    <span>Shifted by {preference} strategy</span>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 pr-4">
-                    <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Signal</div>
-                    <div className="text-sm text-white leading-snug">{selected.title}</div>
-                  </div>
-                  <ConfidenceRing value={adjustedConf} size={100} />
-                </div>
-              </div>
-
-              <div className="border border-zinc-800 rounded-xl p-4 mb-4" style={{ backgroundColor: 'rgba(24,24,27,0.5)' }}>
-                <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Summary</div>
-                <p className="text-sm text-zinc-300 leading-relaxed">{selected.summary}</p>
-              </div>
-
-              <div className="border border-zinc-800 rounded-xl p-4 mb-4" style={{ backgroundColor: 'rgba(24,24,27,0.5)' }}>
-                <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Key Reasoning</div>
-                <ul className="space-y-2">
-                  {selected.reasoning.map((r, i) => (
-                    <li key={i} className="flex gap-2 text-sm text-zinc-300">
-                      <ChevronRight className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: YELLOW }} />
-                      <span className="leading-snug">{r}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <button
-                onClick={() => setDebateOpen(true)}
-                className="w-full p-4 rounded-xl border-2 border-dashed border-zinc-700 transition-all group"
-                style={{ backgroundColor: 'rgba(24,24,27,0.3)' }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = YELLOW;
-                  e.currentTarget.style.backgroundColor = 'rgba(255,204,0,0.05)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#3f3f46';
-                  e.currentTarget.style.backgroundColor = 'rgba(24,24,27,0.3)';
-                }}
-              >
-                <div className="flex items-center justify-center gap-2 text-sm font-semibold text-zinc-300">
-                  <MessageSquare className="w-4 h-4" />
-                  View Persona Debate
-                  <ChevronRight className="w-4 h-4" />
-                </div>
-                <div className="text-zinc-500 mt-1" style={{ fontSize: 11 }}>Watch David, Josef and Steffen discuss this signal</div>
-              </button>
-
-              <div className="mt-4 flex gap-2">
-                <button
-                  className="flex-1 font-semibold py-2.5 rounded-lg transition text-sm"
-                  style={{ backgroundColor: YELLOW, color: '#000' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = YELLOW_HOVER; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = YELLOW; }}
-                >
-                  Escalate to PM
-                </button>
-                <button className="px-3 py-2.5 rounded-lg border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition">
-                  <ExternalLink className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </aside>
-        )}
       </div>
-
-      {debateOpen && selected && (
-        <DebateModal
-          signal={selected}
-          activePersonas={activePersonas}
-          preference={preference}
-          onClose={() => setDebateOpen(false)}
-        />
-      )}
     </div>
   );
 }

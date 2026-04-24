@@ -6,7 +6,7 @@ import SignalCard from './SignalCard';
 
 const ICONS = { ACT: Flame, TRACK: Eye };
 
-export default function TierSection({ tier, signals, preference, onCardClick, activeId }) {
+export default function TierSection({ tier, signals, onCardClick, activeId }) {
   const meta = TIER_META[tier];
   const count = signals.length;
   const Icon = ICONS[tier];
@@ -44,7 +44,6 @@ export default function TierSection({ tier, signals, preference, onCardClick, ac
             key={s.id}
             signal={s}
             active={activeId === s.id}
-            preference={preference}
             onClick={() => onCardClick(s.id)}
             variant={variant}
           />

@@ -1,16 +1,13 @@
 import React from 'react';
-import { Clock, MessageSquare } from 'lucide-react';
+import { Clock, ChevronRight } from 'lucide-react';
 import { YELLOW, REC_STYLES, TYPE_COLORS } from '../constants/styles';
-import { applyPreference } from '../lib/preference';
 import { TIER_META } from '../lib/tier';
 import { cn } from '../lib/cn';
 
-export default function SignalCard({ signal, active, preference, onClick, variant = 'act' }) {
-  const adjustedRec = applyPreference(signal, preference);
-  const rec = REC_STYLES[adjustedRec];
+export default function SignalCard({ signal, active, onClick, variant = 'act' }) {
+  const rec = REC_STYLES[signal.recommendation];
   const RecIcon = rec.icon;
   const typeStyle = TYPE_COLORS[signal.type];
-  const shifted = adjustedRec !== signal.recommendation;
   const tone = TIER_META[variant === 'act' ? 'ACT' : 'TRACK'];
   const isAct = variant === 'act';
 
@@ -105,30 +102,19 @@ export default function SignalCard({ signal, active, preference, onClick, varian
 
       <div className="flex items-center justify-between">
         <span className="text-xs text-zinc-500">{signal.source}</span>
-        <div className="flex items-center gap-2">
-          {shifted && (
-            <span
-              className="text-zinc-500"
-              style={{ fontSize: 10 }}
-              title={`Shifted from ${signal.recommendation}`}
-            >
-              · was {signal.recommendation}
-            </span>
-          )}
-          <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition-all"
-            style={{ backgroundColor: rec.bg, color: rec.text }}
-          >
-            <RecIcon className="w-3 h-3" />
-            {rec.label}
-          </div>
+        <div
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition-all"
+          style={{ backgroundColor: rec.bg, color: rec.text }}
+        >
+          <RecIcon className="w-3 h-3" />
+          {rec.label}
         </div>
       </div>
 
       {isAct && (
         <div className="mt-4 pt-3 border-t border-zinc-800 flex items-center justify-center gap-1.5 text-xs font-semibold text-zinc-400 group-hover:text-white transition">
-          <MessageSquare className="w-3.5 h-3.5" />
-          Open Persona Debate
+          View decision breakdown
+          <ChevronRight className="w-3.5 h-3.5" />
         </div>
       )}
     </button>
