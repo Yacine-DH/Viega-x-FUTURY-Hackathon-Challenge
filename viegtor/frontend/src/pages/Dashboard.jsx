@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Radar, TrendingUp, Activity, Sparkles,
   Bell, Search, Settings, LogOut, Filter, MapPin,
+  ZoomIn, ZoomOut, RotateCcw,
 } from 'lucide-react';
 import { YELLOW } from '../constants/styles';
 import { SIGNALS } from '../constants/signals';
@@ -14,6 +15,32 @@ import Logo from '../components/Logo';
 
 export default function Dashboard({ onSignOut, onOpenTrend, onHome }) {
   const [typeFilter, setTypeFilter] = useState('All');
+  const [zoom, setZoom] = useState(1);
+  const [sidebarWidth, setSidebarWidth] = useState(300);
+  const [dragging, setDragging] = useState(false);
+
+  const onDrag = useCallback((e) => {
+    setSidebarWidth((w) => Math.min(520, Math.max(200, e.clientX)));
+  }, []);
+
+  useEffect(() => {
+    if (!dragging) return;
+    const up = () => setDragging(false);
+    window.addEventListener('mousemove', onDrag);
+    window.addEventListener('mouseup', up);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    return () => {
+      window.removeEventListener('mousemove', onDrag);
+      window.removeEventListener('mouseup', up);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [dragging, onDrag]);
+
+  const zoomIn = () => setZoom((z) => Math.min(1.5, +(z + 0.1).toFixed(2)));
+  const zoomOut = () => setZoom((z) => Math.max(0.6, +(z - 0.1).toFixed(2)));
+  const zoomReset = () => setZoom(1);
 
   const types = ['All'].concat(Array.from(new Set(SIGNALS.map((s) => s.type))));
   const filteredSignals = typeFilter === 'All' ? SIGNALS : SIGNALS.filter((s) => s.type === typeFilter);
@@ -55,6 +82,11 @@ export default function Dashboard({ onSignOut, onOpenTrend, onHome }) {
             <button className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900">
               <Settings className="w-4 h-4" />
             </button>
+            <div className="flex items-center gap-1 mx-1 px-1 py-0.5 rounded-lg border border-zinc-800" style={{ backgroundColor: '#0f0f12' }}>
+              <button onClick={zoomOut} className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800" title="Zoom out"><ZoomOut className="w-3.5 h-3.5" /></button>
+              <button onClick={zoomReset} className="px-1.5 text-[11px] font-mono text-zinc-400 hover:text-white" title="Reset zoom">{Math.round(zoom * 100)}%</button>
+              <button onClick={zoomIn} className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800" title="Zoom in"><ZoomIn className="w-3.5 h-3.5" /></button>
+            </div>
             <button
               onClick={onSignOut}
               className="flex items-center gap-2 p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900"
@@ -66,8 +98,8 @@ export default function Dashboard({ onSignOut, onOpenTrend, onHome }) {
         </div>
       </header>
 
-      <div className="grid grid-cols-12" style={{ height: 'calc(100vh - 57px)' }}>
-        <aside className="col-span-3 border-r border-zinc-800 overflow-y-auto p-5">
+      <div className="flex relative" style={{ height: 'calc(100vh - 57px)', zoom }}>
+        <aside className="border-r border-zinc-800 overflow-y-auto p-5 flex-shrink-0" style={{ width: sidebarWidth }}>
           <div className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-3">Navigation</div>
           <nav className="space-y-1 mb-8">
             <NavItem icon={Radar} label="Radar" active count={SIGNALS.length} />
@@ -91,7 +123,14 @@ export default function Dashboard({ onSignOut, onOpenTrend, onHome }) {
           </div>
         </aside>
 
-        <main className="col-span-9 overflow-y-auto relative">
+        <div
+          onMouseDown={() => setDragging(true)}
+          className="w-1 cursor-col-resize flex-shrink-0 hover:bg-yellow-400/40 transition"
+          style={{ backgroundColor: dragging ? 'rgba(255,204,0,0.5)' : 'transparent' }}
+          title="Drag to resize"
+        />
+
+        <main className="flex-1 overflow-y-auto relative min-w-0">
           <div
             className="sticky top-0 z-10 px-5 py-4 border-b border-zinc-800"
             style={{ backgroundColor: 'rgba(9,9,11,0.9)', backdropFilter: 'blur(8px)' }}
@@ -137,16 +176,16 @@ export default function Dashboard({ onSignOut, onOpenTrend, onHome }) {
             </div>
           </div>
 
-          <div className="p-5 pb-32">
+          <div className="p-5 pb-8">
             <TierSection tier="ACT" signals={tiered.ACT} onCardClick={onOpenTrend} />
             <TierSection tier="TRACK" signals={tiered.TRACK} onCardClick={onOpenTrend} />
             <FiledSection signals={tiered.FIELD} />
           </div>
-
-          <div className="sticky bottom-0 left-0 right-0 px-5 py-4" style={{ background: 'linear-gradient(to top, rgba(9,9,11,0.98) 60%, rgba(9,9,11,0))' }}>
-            <FeedbackChatBar signals={SIGNALS} />
-          </div>
         </main>
+      </div>
+
+      <div className="fixed bottom-4 z-40" style={{ left: 16, width: Math.max(260, sidebarWidth - 32) }}>
+        <FeedbackChatBar signals={SIGNALS} />
       </div>
     </div>
   );

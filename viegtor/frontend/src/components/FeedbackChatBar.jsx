@@ -2,9 +2,9 @@ import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Paperclip, Mic, Send, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { YELLOW, REC_STYLES } from '../constants/styles';
 
-export default function FeedbackChatBar({ signals = [] }) {
+export default function FeedbackChatBar({ signals = [], initialAttachedId = null, lockAttachment = false }) {
   const [text, setText] = useState('');
-  const [attachedId, setAttachedId] = useState(null);
+  const [attachedId, setAttachedId] = useState(initialAttachedId);
   const [open, setOpen] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -40,7 +40,9 @@ export default function FeedbackChatBar({ signals = [] }) {
   return (
     <div className="relative">
       {attached && (
-        <div className="absolute -top-9 left-4 flex items-center gap-2 px-2.5 py-1 rounded-md border border-zinc-700 bg-zinc-900 text-xs text-zinc-300">
+        <div className="absolute -top-9 left-4 flex items-center gap-2 px-2.5 py-1 rounded-md border text-xs text-zinc-300"
+          style={{ borderColor: lockAttachment ? 'rgba(255,204,0,0.4)' : '#3f3f46', backgroundColor: lockAttachment ? 'rgba(255,204,0,0.08)' : '#18181b' }}
+        >
           <span
             className="px-1.5 py-0.5 rounded text-[10px] font-bold"
             style={{ backgroundColor: REC_STYLES[attached.recommendation].bg, color: REC_STYLES[attached.recommendation].text }}
@@ -48,12 +50,13 @@ export default function FeedbackChatBar({ signals = [] }) {
             {attached.recommendation}
           </span>
           <span className="max-w-[260px] truncate">{attached.title}</span>
-          <button
-            onClick={() => setAttachedId(null)}
-            className="text-zinc-500 hover:text-white"
-          >
-            <X className="w-3 h-3" />
-          </button>
+          {lockAttachment ? (
+            <span className="text-[10px] text-zinc-500 uppercase tracking-wider">context</span>
+          ) : (
+            <button onClick={() => setAttachedId(null)} className="text-zinc-500 hover:text-white">
+              <X className="w-3 h-3" />
+            </button>
+          )}
         </div>
       )}
 
@@ -69,9 +72,10 @@ export default function FeedbackChatBar({ signals = [] }) {
         <div className="flex items-center gap-2 px-3 py-2.5">
           <div className="relative" ref={popRef}>
             <button
-              onClick={() => setOpen((o) => !o)}
-              className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition"
-              title="Attach a trend"
+              onClick={() => !lockAttachment && setOpen((o) => !o)}
+              disabled={lockAttachment}
+              className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-zinc-400"
+              title={lockAttachment ? 'Context locked to this trend' : 'Attach a trend'}
             >
               <Paperclip className="w-4 h-4" />
             </button>

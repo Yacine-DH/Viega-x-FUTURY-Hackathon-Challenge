@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ArrowLeft, Download, Users, Shield, Clock, Activity,
   AlertTriangle, TrendingUp, DollarSign, CheckCircle2, XCircle, MinusCircle,
   Rocket, Beaker, Ban, Globe, FileText, MessageSquare, Clock3,
+  ZoomIn, ZoomOut,
 } from 'lucide-react';
 import { YELLOW, REC_STYLES, TYPE_COLORS } from '../constants/styles';
+import { SIGNALS } from '../constants/signals';
 import Logo from '../components/Logo';
+import FeedbackChatBar from '../components/FeedbackChatBar';
 
 const levelLabel = (v) => (v >= 75 ? 'High' : v >= 50 ? 'Medium' : 'Low');
 const levelColor = (v) => (v >= 75 ? '#22c55e' : v >= 50 ? '#eab308' : '#ef4444');
@@ -30,23 +33,23 @@ function MetricCard({ icon: Icon, title, subtitle, metrics, accent }) {
   const avg = Math.round(metrics.reduce((a, b) => a + b.value, 0) / metrics.length);
   const overall = levelLabel(avg);
   return (
-    <div className="rounded-2xl border border-zinc-800 p-5" style={{ backgroundColor: '#0f0f12' }}>
-      <div className="flex items-start gap-3 mb-4">
+    <div className="rounded-2xl border border-zinc-800 p-3.5" style={{ backgroundColor: '#0f0f12' }}>
+      <div className="flex items-start gap-2.5 mb-3">
         <div
-          className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ backgroundColor: accent + '20', border: `1px solid ${accent}40` }}
         >
           <Icon className="w-4 h-4" style={{ color: accent }} />
         </div>
         <div>
-          <div className="font-semibold text-white text-sm">{title}</div>
-          <div className="text-xs text-zinc-500 mt-0.5">{subtitle}</div>
+          <div className="font-semibold text-white text-sm leading-tight">{title}</div>
+          <div className="text-[11px] text-zinc-500 mt-0.5 leading-snug">{subtitle}</div>
         </div>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2">
         {metrics.map((m) => <Bar key={m.label} label={m.label} value={m.value} />)}
       </div>
-      <div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-800">
+      <div className="flex items-center justify-between mt-3 pt-2 border-t border-zinc-800">
         <span className="text-xs uppercase tracking-wider text-zinc-500">Overall</span>
         <span
           className="text-xs font-bold px-2 py-0.5 rounded"
@@ -150,6 +153,29 @@ function Block({ icon: Icon, title, score, color, points }) {
 }
 
 export default function TrendDetailPage({ signal, onBack }) {
+  const [zoom, setZoom] = useState(1);
+  const zoomIn = () => setZoom((z) => Math.min(1.5, +(z + 0.1).toFixed(2)));
+  const zoomOut = () => setZoom((z) => Math.max(0.6, +(z - 0.1).toFixed(2)));
+  const zoomReset = () => setZoom(1);
+  const [inputsWidth, setInputsWidth] = useState(320);
+  const [dragging, setDragging] = useState(false);
+  const onDrag = useCallback((e) => {
+    setInputsWidth((w) => Math.min(560, Math.max(220, e.clientX - 24)));
+  }, []);
+  useEffect(() => {
+    if (!dragging) return;
+    const up = () => setDragging(false);
+    window.addEventListener('mousemove', onDrag);
+    window.addEventListener('mouseup', up);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    return () => {
+      window.removeEventListener('mousemove', onDrag);
+      window.removeEventListener('mouseup', up);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [dragging, onDrag]);
   const score = Math.round((signal.impact + signal.confidence) / 2);
   const typeStyle = TYPE_COLORS[signal.type] || { color: '#a1a1aa', bg: 'rgba(161,161,170,0.1)' };
   const rec = REC_STYLES[signal.recommendation];
@@ -185,6 +211,11 @@ export default function TrendDetailPage({ signal, onBack }) {
             >
               Scenario: <span className="text-white font-semibold">{signal.type}</span>
             </div>
+            <div className="flex items-center gap-1 mx-1 px-1 py-0.5 rounded-lg border border-zinc-800" style={{ backgroundColor: '#0f0f12' }}>
+              <button onClick={zoomOut} className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800" title="Zoom out"><ZoomOut className="w-3.5 h-3.5" /></button>
+              <button onClick={zoomReset} className="px-1.5 text-[11px] font-mono text-zinc-400 hover:text-white" title="Reset zoom">{Math.round(zoom * 100)}%</button>
+              <button onClick={zoomIn} className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800" title="Zoom in"><ZoomIn className="w-3.5 h-3.5" /></button>
+            </div>
             <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 text-sm text-zinc-300 hover:text-white hover:border-zinc-700">
               <Download className="w-4 h-4" />
               Export
@@ -193,8 +224,8 @@ export default function TrendDetailPage({ signal, onBack }) {
         </div>
       </header>
 
-      <div className="px-6 py-5 grid grid-cols-12 gap-4">
-        <aside className="col-span-3 space-y-4">
+      <div className="px-6 py-5 flex gap-4" style={{ zoom }}>
+        <aside className="space-y-4 flex-shrink-0" style={{ width: inputsWidth }}>
           <SectionTitle num={1} title="INPUTS" sub="What is happening?" />
 
           <div className="rounded-2xl border border-zinc-800 p-4" style={{ backgroundColor: '#0f0f12' }}>
@@ -248,7 +279,13 @@ export default function TrendDetailPage({ signal, onBack }) {
           </div>
         </aside>
 
-        <section className="col-span-9 space-y-4">
+        <div
+          onMouseDown={() => setDragging(true)}
+          className="w-1 cursor-col-resize flex-shrink-0 hover:bg-yellow-400/40 transition rounded"
+          style={{ backgroundColor: dragging ? 'rgba(255,204,0,0.5)' : 'transparent' }}
+          title="Drag to resize"
+        />
+        <section className="flex-1 space-y-4 min-w-0">
           <SectionTitle num={2} title="THINKING / ANALYSIS" sub="How we think about it" />
 
           <div className="grid grid-cols-5 gap-3">
@@ -260,7 +297,6 @@ export default function TrendDetailPage({ signal, onBack }) {
               metrics={[
                 { label: 'Customer Relevance', value: signal.impact },
                 { label: 'Product Category Fit', value: Math.min(95, signal.impact + 5) },
-                { label: 'Market Size Impact', value: Math.max(30, signal.impact - 10) },
               ]}
             />
             <MetricCard
@@ -269,7 +305,6 @@ export default function TrendDetailPage({ signal, onBack }) {
               subtitle="What is the competitive threat?"
               accent="#a78bfa"
               metrics={[
-                { label: 'Differentiation Level', value: signal.confidence },
                 { label: 'Risk of Market Share Loss', value: signal.impact },
                 { label: 'Barrier to Imitate', value: Math.max(40, signal.confidence - 15) },
               ]}
@@ -281,7 +316,6 @@ export default function TrendDetailPage({ signal, onBack }) {
               accent="#fb923c"
               metrics={[
                 { label: 'Time to Market Effect', value: signal.impact },
-                { label: 'Speed of Adoption', value: Math.min(95, signal.impact + 3) },
                 { label: 'Window of Opportunity', value: Math.max(45, signal.confidence - 10) },
               ]}
             />
@@ -292,7 +326,6 @@ export default function TrendDetailPage({ signal, onBack }) {
               accent="#34d399"
               metrics={[
                 { label: 'Source Reliability', value: signal.confidence },
-                { label: 'Signal Consistency', value: Math.min(95, signal.confidence + 2) },
                 { label: 'Evidence Strength', value: Math.max(50, signal.confidence - 5) },
               ]}
             />
@@ -374,6 +407,10 @@ export default function TrendDetailPage({ signal, onBack }) {
             </div>
           </div>
         </section>
+      </div>
+
+      <div className="fixed bottom-4 z-40" style={{ left: 24, width: Math.max(260, inputsWidth) }}>
+        <FeedbackChatBar signals={SIGNALS} initialAttachedId={signal.id} lockAttachment />
       </div>
     </div>
   );
