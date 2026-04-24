@@ -16,7 +16,7 @@ import DebateModal from '../components/DebateModal';
 import Onboarding from '../components/Onboarding';
 import Logo from '../components/Logo';
 
-export default function Dashboard({ onSignOut, role = 'expert' }) {
+export default function Dashboard({ onSignOut }) {
   const [onboarded, setOnboarded] = useState(false);
   const [focus, setFocus] = useState(null);
   const [selectedId, setSelectedId] = useState(1);
@@ -109,11 +109,11 @@ export default function Dashboard({ onSignOut, role = 'expert' }) {
             <NavItem icon={Sparkles} label="AI Insights" />
           </nav>
 
-          {role === 'expert' && <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3">
             <div className="text-xs font-bold uppercase tracking-wider text-zinc-500">AI Personas</div>
             <span className="text-zinc-600" style={{ fontSize: 10 }}>{activeCount}/3 active</span>
-          </div>}
-          {role === 'expert' && <div className="space-y-2">
+          </div>
+          <div className="space-y-2">
             {Object.values(PERSONAS).map((p) => {
               const Icon = p.icon;
               const isActive = activePersonas[p.id];
@@ -158,7 +158,7 @@ export default function Dashboard({ onSignOut, role = 'expert' }) {
                 </button>
               );
             })}
-          </div>}
+          </div>
 
           <div
             className="mt-8 p-4 rounded-xl border"
@@ -185,9 +185,6 @@ export default function Dashboard({ onSignOut, role = 'expert' }) {
                 <Radar className="w-4 h-4" style={{ color: YELLOW }} />
                 <h2 className="font-bold text-white">Market Radar</h2>
                 <span className="text-xs text-zinc-500">{filteredSignals.length} signals</span>
-                {role === 'co' && (
-                  <span className="text-xs font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,204,0,0.12)', color: '#FFCC00' }}>CO</span>
-                )}
               </div>
               <button className="text-xs text-zinc-400 hover:text-white flex items-center gap-1">
                 <Filter className="w-3 h-3" />
@@ -305,28 +302,26 @@ export default function Dashboard({ onSignOut, role = 'expert' }) {
                 </ul>
               </div>
 
-              {role === 'expert' && (
-                <button
-                  onClick={() => setDebateOpen(true)}
-                  className="w-full p-4 rounded-xl border-2 border-dashed border-zinc-700 transition-all group"
-                  style={{ backgroundColor: 'rgba(24,24,27,0.3)' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = YELLOW;
-                    e.currentTarget.style.backgroundColor = 'rgba(255,204,0,0.05)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#3f3f46';
-                    e.currentTarget.style.backgroundColor = 'rgba(24,24,27,0.3)';
-                  }}
-                >
-                  <div className="flex items-center justify-center gap-2 text-sm font-semibold text-zinc-300">
-                    <MessageSquare className="w-4 h-4" />
-                    View Persona Debate
-                    <ChevronRight className="w-4 h-4" />
-                  </div>
-                  <div className="text-zinc-500 mt-1" style={{ fontSize: 11 }}>Watch David, Josef and Steffen discuss this signal</div>
-                </button>
-              )}
+              <button
+                onClick={() => setDebateOpen(true)}
+                className="w-full p-4 rounded-xl border-2 border-dashed border-zinc-700 transition-all group"
+                style={{ backgroundColor: 'rgba(24,24,27,0.3)' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = YELLOW;
+                  e.currentTarget.style.backgroundColor = 'rgba(255,204,0,0.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#3f3f46';
+                  e.currentTarget.style.backgroundColor = 'rgba(24,24,27,0.3)';
+                }}
+              >
+                <div className="flex items-center justify-center gap-2 text-sm font-semibold text-zinc-300">
+                  <MessageSquare className="w-4 h-4" />
+                  View Persona Debate
+                  <ChevronRight className="w-4 h-4" />
+                </div>
+                <div className="text-zinc-500 mt-1" style={{ fontSize: 11 }}>Watch David, Josef and Steffen discuss this signal</div>
+              </button>
 
               <div className="mt-4 flex gap-2">
                 <button
@@ -346,7 +341,7 @@ export default function Dashboard({ onSignOut, role = 'expert' }) {
         </aside>
       </div>
 
-      {role === 'expert' && debateOpen && selected && (
+      {debateOpen && selected && (
         <DebateModal
           signal={selected}
           activePersonas={activePersonas}
