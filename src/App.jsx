@@ -1,20 +1,11 @@
 import React, { useState } from 'react';
 import HomePage from './pages/HomePage';
 import Dashboard from './pages/Dashboard';
-import LoginModal from './components/LoginModal';
+import SignupPage from './pages/SignupPage';
 
 export default function App() {
-  const [view, setView] = useState('home');
-  const [showLogin, setShowLogin] = useState(false);
-
-  const handleLoginSuccess = () => {
-    setShowLogin(false);
-    setView('app');
-  };
-
-  const handleSignOut = () => {
-    setView('home');
-  };
+  const [currentPage, setCurrentPage] = useState('home'); // 'home', 'signup', 'dashboard'
+  const [selectedRole, setSelectedRole] = useState(null);
 
   const keyframes =
     '@keyframes debateFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
@@ -24,15 +15,17 @@ export default function App() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: keyframes }} />
-      {view === 'home' && (
+      {currentPage === 'home' && (
         <HomePage
-          onLaunch={() => setShowLogin(true)}
-          onSignIn={() => setShowLogin(true)}
+          onSignIn={(role) => { setSelectedRole(role); setCurrentPage('dashboard'); }}
+          onSignUp={() => setCurrentPage('signup')}
         />
       )}
-      {view === 'app' && <Dashboard onSignOut={handleSignOut} />}
-      {showLogin && (
-        <LoginModal onSuccess={handleLoginSuccess} onClose={() => setShowLogin(false)} />
+      {currentPage === 'signup' && (
+        <SignupPage onSignup={(user) => { setSelectedRole(user.role); setCurrentPage('dashboard'); }} />
+      )}
+      {currentPage === 'dashboard' && (
+        <Dashboard role={selectedRole} onSignOut={() => { setSelectedRole(null); setCurrentPage('home'); }} />
       )}
     </>
   );

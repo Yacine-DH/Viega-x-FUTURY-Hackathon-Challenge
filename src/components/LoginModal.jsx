@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Compass, X, User, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { YELLOW } from '../constants/styles';
 
-export default function LoginModal({ onSuccess, onClose }) {
+export default function LoginModal({ onSuccess, onClose, preselectedRole = null }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -45,6 +45,18 @@ export default function LoginModal({ onSuccess, onClose }) {
             <p className="text-xs text-zinc-500">Sign in to access your Compass</p>
           </div>
         </div>
+
+        {preselectedRole && (
+          <div
+            className="mb-5 flex items-center gap-2 px-3 py-2 rounded-lg"
+            style={{ backgroundColor: 'rgba(255,204,0,0.07)', border: '1px solid rgba(255,204,0,0.2)' }}
+          >
+            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Mode selected:</span>
+            <span className="text-xs font-bold" style={{ color: YELLOW }}>
+              {preselectedRole === 'co' ? 'CO — Executive Overview' : 'Expert — Deep Dive'}
+            </span>
+          </div>
+        )}
 
         <div className="space-y-4">
           <div>
