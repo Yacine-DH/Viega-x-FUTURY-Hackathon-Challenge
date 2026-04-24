@@ -11,7 +11,7 @@ Develop a prototype for an intelligent assistant that empowers Product Managers 
 ## 3. Challenge Details & Objectives
 **Deliverables:**
 * Deliver a working prototype or clickable demo.
-* Provide a clear decision output: **"Build / Invest / Ignore / Adjust"**.
+* Provide a clear decision output: **"Build / Invest / Ignore"**.
 * Suggest a feature or product direction.
 * Provide prioritization or impact estimation of recommendations.
 
