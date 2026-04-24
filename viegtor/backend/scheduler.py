@@ -38,7 +38,7 @@ def setup_scheduler(settings: Settings) -> AsyncIOScheduler:
         EurLexScraper(webhook_url=webhook_url, max_age_hours=max_age),
         CompetitorIRScraper(webhook_url=webhook_url, max_age_hours=max_age),
         CompetitorPatentsScraper(webhook_url=webhook_url, max_age_hours=max_age),
-        TedTendersScraper(webhook_url=webhook_url, max_age_hours=max_age),
+        TedTendersScraper(webhook_url=webhook_url, api_key=settings.ted_api_key, max_age_hours=max_age),
         CommoditiesScraper(
             webhook_url=webhook_url,
             api_key=settings.trading_economics_api_key,
@@ -78,7 +78,7 @@ async def run_all_scrapers_once(settings: Settings) -> dict[str, int]:
         EurLexScraper(webhook_url, max_age),
         CompetitorIRScraper(webhook_url, max_age),
         CompetitorPatentsScraper(webhook_url, max_age),
-        TedTendersScraper(webhook_url, max_age),
+        TedTendersScraper(webhook_url, settings.ted_api_key, max_age),
         CommoditiesScraper(webhook_url, settings.trading_economics_api_key, max_age),
         NewsScraper(webhook_url, settings.news_api_key, max_age),
     ]

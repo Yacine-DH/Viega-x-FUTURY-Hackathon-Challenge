@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     epo_client_id: str = ""
     epo_client_secret: str = ""
     sec_api_key: str = ""
+    ted_api_key: str = ""
 
     # Scheduler
     webhook_base_url: str = "http://localhost:8000"

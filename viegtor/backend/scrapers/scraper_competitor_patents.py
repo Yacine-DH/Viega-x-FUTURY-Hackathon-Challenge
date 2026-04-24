@@ -71,6 +71,10 @@ class CompetitorPatentsScraper(BaseScraper):
     source_name = "competitor_patents_news"
     source_weight = 0.8
 
+    def __init__(self, webhook_url: str, max_age_hours: int = 72) -> None:
+        # Patent news cycle is weekly — 7-day window catches meaningful volume.
+        super().__init__(webhook_url, max_age_hours=max(max_age_hours, 168))
+
     async def scrape(self) -> list[RawSignal]:
         signals: list[RawSignal] = []
         loop = asyncio.get_event_loop()

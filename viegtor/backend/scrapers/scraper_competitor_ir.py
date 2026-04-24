@@ -1,141 +1,122 @@
 """Competitor IR & PR scraper — coefficient 1.0.
 
-EU competitors (Geberit, Aalberts, Aliaxis): Playwright stealth on their
-investor-relations press release pages.
-US competitor (NIBCO): Playwright stealth on their news page.
+Uses Google News RSS with per-competitor boolean queries to collect press releases,
+financial results, and product announcements — no Playwright selector fragility.
 
-If Playwright is blocked: document in SCRAPER_FALLBACKS.md and switch to
-Firecrawl or ZenRows.
+Why switched from Playwright:
+  Each competitor site uses a different React/CMS structure. Selectors broke
+  silently and the a[href] fallback flooded output with navigation links.
+  Google News RSS is stable, structured, and requires no authentication.
+
+Competitors monitored: Geberit, Aalberts, Aliaxis, NIBCO, TECE, SCHELL, Conex Banninger.
 """
+import asyncio
 import logging
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from urllib.parse import urlparse
+from urllib.parse import quote
+
+import feedparser
 
 from scrapers.base_scraper import BaseScraper
 from schemas.signals import RawSignal
 
 logger = logging.getLogger(__name__)
 
-EU_COMPETITOR_PAGES = [
+GOOGLE_NEWS_RSS = "https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
+
+COMPETITOR_QUERIES = [
     {
-        "name": "geberit",
-        "url": "https://www.geberit.com/en/publications",
-        "article_selector": "article, .news-item, .press-release, .media-release",
-        "title_selector": "h2, h3, .title",
-        "date_selector": "time, .date, [datetime]",
+        "label": "Geberit IR",
+        "query": '"Geberit" AND ("press release" OR "results" OR "acquisition" OR "product launch" OR "expansion")',
     },
     {
-        "name": "aalberts",
-        "url": "https://aalberts.com/newsroom",
-        "article_selector": "article, .press-release-item, .news-list__item",
-        "title_selector": "h2, h3, .press-release__title",
-        "date_selector": "time, .date, .press-release__date",
+        "label": "Aalberts IR",
+        "query": '"Aalberts" AND ("press release" OR "results" OR "acquisition" OR "divestment" OR "product")',
     },
     {
-        "name": "aliaxis",
-        "url": "https://aliaxis.com/latest/",
-        "article_selector": "article, .press-release, .news-card",
-        "title_selector": "h2, h3, .card__title",
-        "date_selector": "time, .date, .card__date",
+        "label": "Aliaxis IR",
+        "query": '"Aliaxis" AND ("press release" OR "results" OR "acquisition" OR "product" OR "market")',
+    },
+    {
+        "label": "NIBCO IR",
+        "query": '"NIBCO" AND ("press release" OR "product" OR "market" OR "expansion" OR "acquisition")',
+    },
+    {
+        "label": "TECE IR",
+        "query": '"TECE" AND ("plumbing" OR "fitting" OR "product" OR "press release" OR "market")',
+    },
+    {
+        "label": "SCHELL IR",
+        "query": '"SCHELL" AND ("fittings" OR "press release" OR "product" OR "market" OR "water")',
+    },
+    {
+        "label": "Conex Banninger IR",
+        "query": '"Conex" AND ("Banninger" OR "Bänninger") AND ("press release" OR "product" OR "fitting")',
     },
 ]
-
-NIBCO_PAGE = {
-    "name": "nibco",
-    "url": "https://www.nibco.com/news-events/news/",
-    "article_selector": "article, .news-item, .press-release-item, .entry",
-    "title_selector": "h2, h3, h4, .entry-title, .news-title",
-    "date_selector": "time, .date, .entry-date, [datetime]",
-}
 
 
 class CompetitorIRScraper(BaseScraper):
     source_name = "competitor_ir"
     source_weight = 1.0
 
+    def __init__(self, webhook_url: str, max_age_hours: int = 72) -> None:
+        # Competitor news is relevant for a full week
+        super().__init__(webhook_url, max_age_hours=max(max_age_hours, 168))
+
     async def scrape(self) -> list[RawSignal]:
-        eu_signals = await self._scrape_eu_competitors()
-        nibco_signals = await self._scrape_nibco_playwright()
-        return eu_signals + nibco_signals
-
-    async def _scrape_eu_competitors(self) -> list[RawSignal]:
         signals: list[RawSignal] = []
-        for competitor in EU_COMPETITOR_PAGES:
+        loop = asyncio.get_event_loop()
+
+        for item in COMPETITOR_QUERIES:
             try:
-                items = await self._scrape_ir_page(competitor)
-                signals.extend(items)
+                rss_url = GOOGLE_NEWS_RSS.format(query=quote(item["query"]))
+                feed = await loop.run_in_executor(None, feedparser.parse, rss_url)
+                batch = self._parse_feed(feed, item["label"])
+                signals.extend(batch)
+                logger.debug("competitor_ir [%s]: %d signals", item["label"], len(batch))
             except Exception:
-                logger.exception(
-                    "Playwright scrape failed for %s — add to SCRAPER_FALLBACKS.md",
-                    competitor["name"],
-                )
+                logger.exception("Google News RSS failed for %s", item["label"])
+
+        logger.info("competitor_ir: %d total signals", len(signals))
         return signals
 
-    async def _scrape_ir_page(self, competitor: dict) -> list[RawSignal]:
+    def _parse_feed(self, feed, label: str) -> list[RawSignal]:
         signals: list[RawSignal] = []
-        async with self._stealth_page() as page:
-            await page.goto(competitor["url"], wait_until="domcontentloaded", timeout=30000)
 
-            articles = await page.query_selector_all(competitor["article_selector"])
-            if not articles:
-                # Generic fallback: any element with a heading + link
-                articles = await page.query_selector_all("a[href]")
+        for entry in feed.entries[:10]:
+            title: str = entry.get("title", "").strip()
+            link: str = entry.get("link", "")
+            summary: str = entry.get("summary", "").strip()
 
-            for article in articles[:20]:
-                title_el = await article.query_selector(competitor["title_selector"])
-                date_el = await article.query_selector(competitor["date_selector"])
+            if not title or not link:
+                continue
 
-                title = (await title_el.inner_text()).strip() if title_el else ""
-                if not title:
-                    title = (await article.inner_text()).strip()[:120]
+            pub_date = self._parse_entry_date(entry)
+            if pub_date and not self._is_fresh(pub_date):
+                continue
 
-                href = await article.get_attribute("href") or competitor["url"]
-                if href.startswith("/"):
-                    base = urlparse(competitor["url"])
-                    href = f"{base.scheme}://{base.netloc}{href}"
+            raw_text = f"[{label}] {title}"
+            if summary:
+                raw_text += f"\n{summary[:300]}"
 
-                pub_date = await self._parse_element_date(date_el)
-                if pub_date and not self._is_fresh(pub_date):
-                    continue
-
-                if not title:
-                    continue
-
-                signals.append(RawSignal(
-                    source=self.source_name,
-                    url=href,
-                    raw_text=f"[{competitor['name'].title()} IR] {title}",
-                    timestamp=pub_date or datetime.now(timezone.utc),
-                    source_weight=self.source_weight,
-                ))
+            signals.append(RawSignal(
+                source=self.source_name,
+                url=link,
+                raw_text=raw_text,
+                timestamp=pub_date or datetime.now(timezone.utc),
+                source_weight=self.source_weight,
+            ))
 
         return signals
 
-    async def _parse_element_date(self, el) -> datetime | None:
-        if el is None:
-            return None
-        # Try <time datetime="..."> attribute first
-        dt_attr = await el.get_attribute("datetime")
-        if dt_attr:
-            try:
-                return datetime.fromisoformat(dt_attr.rstrip("Z")).replace(tzinfo=timezone.utc)
-            except ValueError:
-                pass
-        text = (await el.inner_text()).strip()
-        try:
-            return parsedate_to_datetime(text).replace(tzinfo=timezone.utc)
-        except Exception:
-            return None
-
-    async def _scrape_nibco_playwright(self) -> list[RawSignal]:
-        """Scrapes NIBCO news page using Playwright stealth with 3-day freshness filter."""
-        signals: list[RawSignal] = []
-        try:
-            items = await self._scrape_ir_page(NIBCO_PAGE)
-            signals.extend(items)
-        except Exception:
-            logger.exception(
-                "Playwright scrape failed for nibco — add to SCRAPER_FALLBACKS.md"
-            )
-        return signals
+    def _parse_entry_date(self, entry: dict) -> datetime | None:
+        for key in ("published", "updated"):
+            raw = entry.get(key)
+            if raw:
+                try:
+                    return parsedate_to_datetime(raw).replace(tzinfo=timezone.utc)
+                except Exception:
+                    pass
+        return None

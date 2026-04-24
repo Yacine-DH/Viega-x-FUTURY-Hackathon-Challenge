@@ -1,9 +1,13 @@
 """Commodities & raw materials scraper — coefficient 0.8.
 
 Primary: Trading Economics API (copper + industrial polymers).
-Fallback: Playwright stealth on LME website if TRADING_ECONOMICS_API_KEY is unset.
+Fallback: Yahoo Finance JSON API for copper (HG=F futures) — no API key needed,
+          returns structured JSON directly without Playwright or authentication.
 
-A significant price move (>2% in 3 days) is considered a fresh signal.
+Why Yahoo Finance instead of LME Playwright:
+  LME.com CSS selectors (.price-value, .settlement-price) do not match the site's
+  actual rendered HTML, consistently returning N/A. Yahoo Finance's unofficial
+  chart endpoint is stable, unauthenticated, and returns structured JSON.
 """
 import logging
 from datetime import datetime, timezone
@@ -16,15 +20,15 @@ from schemas.signals import RawSignal
 logger = logging.getLogger(__name__)
 
 TE_BASE_URL = "https://api.tradingeconomics.com/markets/commodity"
-LME_COPPER_URL = "https://www.lme.com/Metals/Non-ferrous/LME-Copper"
+YAHOO_COPPER_URL = "https://query1.finance.yahoo.com/v8/finance/chart/HG=F"
+YAHOO_COPPER_PAGE = "https://finance.yahoo.com/quote/HG%3DF/"
 
 COMMODITIES = [
     {"symbol": "copper", "label": "Copper"},
     {"symbol": "polypropylene", "label": "Industrial Polymers (Polypropylene)"},
 ]
 
-# Minimum absolute % change to qualify as a signal worth reporting
-PRICE_CHANGE_THRESHOLD = 1.5
+PRICE_CHANGE_THRESHOLD = 1.5  # minimum % move to qualify as a signal
 
 
 class CommoditiesScraper(BaseScraper):
@@ -38,8 +42,8 @@ class CommoditiesScraper(BaseScraper):
     async def scrape(self) -> list[RawSignal]:
         if self._api_key:
             return await self._scrape_trading_economics()
-        logger.warning("TRADING_ECONOMICS_API_KEY not set — falling back to LME Playwright scrape")
-        return await self._scrape_lme_playwright()
+        logger.warning("TRADING_ECONOMICS_API_KEY not set — falling back to Yahoo Finance")
+        return await self._scrape_yahoo_finance()
 
     async def _scrape_trading_economics(self) -> list[RawSignal]:
         signals: list[RawSignal] = []
@@ -53,14 +57,12 @@ class CommoditiesScraper(BaseScraper):
                     resp.raise_for_status()
                     data = resp.json()
                     items = data if isinstance(data, list) else [data]
-
                     for item in items:
                         signal = self._build_signal_from_te(item, commodity["label"])
                         if signal:
                             signals.append(signal)
                 except Exception:
                     logger.exception("Trading Economics request failed for %s", commodity["symbol"])
-
         return signals
 
     def _build_signal_from_te(self, item: dict, label: str) -> RawSignal | None:
@@ -79,43 +81,61 @@ class CommoditiesScraper(BaseScraper):
             return None
 
         direction = "surged" if change > 0 else "dropped"
-        raw_text = (
-            f"[Commodity Signal] {label} {direction} {abs(change):.1f}% to {price}. "
-            f"This may indicate supply chain pressure on Viega's raw material costs."
-        )
-
         return RawSignal(
             source=self.source_name,
             url=f"https://tradingeconomics.com/{url}",
-            raw_text=raw_text,
+            raw_text=(
+                f"[Commodity Signal] {label} {direction} {abs(change):.1f}% to {price}. "
+                "This may indicate supply chain pressure on Viega's raw material costs."
+            ),
             timestamp=datetime.now(timezone.utc),
             source_weight=self.source_weight,
         )
 
-    async def _scrape_lme_playwright(self) -> list[RawSignal]:
-        """Playwright stealth fallback for LME copper daily close price."""
+    async def _scrape_yahoo_finance(self) -> list[RawSignal]:
+        """Fetch copper futures price from Yahoo Finance (no API key required)."""
         signals: list[RawSignal] = []
         try:
-            async with self._stealth_page() as page:
-                await page.goto(LME_COPPER_URL, wait_until="domcontentloaded", timeout=30000)
-                price_el = await page.query_selector(
-                    ".price-value, .settlement-price, [data-field='settlement']"
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.get(
+                    YAHOO_COPPER_URL,
+                    params={"interval": "1d", "range": "5d"},
+                    headers={"User-Agent": "Mozilla/5.0 (compatible; ViegaCompass/1.0)"},
                 )
-                price_text = (await price_el.inner_text()).strip() if price_el else "N/A"
+                resp.raise_for_status()
+                data = resp.json()
 
-                raw_text = (
-                    f"[LME Copper Daily Close] Price: {price_text}. "
-                    "Monitor for >1.5% moves as an indicator of raw material cost pressure."
-                )
-                signals.append(RawSignal(
-                    source=self.source_name,
-                    url=LME_COPPER_URL,
-                    raw_text=raw_text,
-                    timestamp=datetime.now(timezone.utc),
-                    source_weight=self.source_weight,
-                ))
+            result = data["chart"]["result"][0]
+            meta = result["meta"]
+            price = meta.get("regularMarketPrice")
+            prev_close = meta.get("chartPreviousClose") or meta.get("previousClose")
+            currency = meta.get("currency", "USD")
+
+            if price is None or prev_close is None:
+                logger.warning("Yahoo Finance: missing price data in response")
+                return signals
+
+            pct = ((price - prev_close) / prev_close) * 100
+            logger.info("Yahoo Finance copper: %.2f %s (%.1f%% change)", price, currency, pct)
+
+            if abs(pct) < PRICE_CHANGE_THRESHOLD:
+                logger.info("Copper move %.1f%% below threshold %.1f%% — skipping", abs(pct), PRICE_CHANGE_THRESHOLD)
+                return signals
+
+            direction = "surged" if pct > 0 else "dropped"
+            signals.append(RawSignal(
+                source=self.source_name,
+                url=YAHOO_COPPER_PAGE,
+                raw_text=(
+                    f"[Commodity Signal] Copper (HG=F) {direction} {abs(pct):.1f}% "
+                    f"to {price:.2f} {currency}/lb. "
+                    "This may indicate supply chain pressure on Viega's raw material costs."
+                ),
+                timestamp=datetime.now(timezone.utc),
+                source_weight=self.source_weight,
+            ))
+
         except Exception:
-            logger.exception(
-                "LME Playwright fallback failed — add to SCRAPER_FALLBACKS.md"
-            )
+            logger.exception("Yahoo Finance copper fetch failed — add to SCRAPER_FALLBACKS.md")
+
         return signals
