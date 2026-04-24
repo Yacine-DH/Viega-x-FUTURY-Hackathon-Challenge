@@ -5,7 +5,9 @@ import DebateModal from './DebateModal';
 
 export default function FeedbackChatBar({ signals = [], initialAttachedId = null, lockAttachment = false }) {
   const [text, setText] = useState('');
-  const [attachedId, setAttachedId] = useState(initialAttachedId);
+  const [attachedId, setAttachedId] = useState(
+    initialAttachedId != null ? String(initialAttachedId) : null
+  );
   const [open, setOpen] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -18,7 +20,7 @@ export default function FeedbackChatBar({ signals = [], initialAttachedId = null
     [signals]
   );
   const visible = showMore ? sorted : sorted.slice(0, 4);
-  const attached = signals.find((s) => s.id === attachedId);
+  const attached = signals.find((s) => String(s.id) === attachedId);
 
   useEffect(() => {
     const onDoc = (e) => {
@@ -102,7 +104,7 @@ export default function FeedbackChatBar({ signals = [], initialAttachedId = null
                         <li key={s.id}>
                           <button
                             onClick={() => {
-                              setAttachedId(isSel ? null : s.id);
+                              setAttachedId(isSel ? null : String(s.id));
                               setOpen(false);
                             }}
                             className="w-full text-left p-2.5 rounded-lg border hover:bg-zinc-900 transition"
