@@ -65,6 +65,51 @@ def make_json_config(temperature: float = 0.1) -> GenerationConfig:
     )
 
 
+def make_tribunal_config() -> GenerationConfig:
+    """GenerationConfig for the tribunal — schema-constrained JSON prevents bad escaping.
+
+    Using response_schema engages Gemini's constrained-decoding layer so it cannot
+    emit unescaped quotes or newlines inside string values (the most common cause of
+    JSONDecodeError in tribunal responses).  4096 tokens covers 5 long persona
+    arguments + consensus without risk of truncation.
+    """
+    schema = {
+        "type": "object",
+        "properties": {
+            "persona_arguments": {
+                "type": "object",
+                "properties": {
+                    "Josef":   {"type": "string"},
+                    "Steffen": {"type": "string"},
+                    "David":   {"type": "string"},
+                    "Volkmar": {"type": "string"},
+                    "Nick":    {"type": "string"},
+                },
+                "required": ["Josef", "Steffen", "David", "Volkmar", "Nick"],
+            },
+            "consensus_feedback":    {"type": "string"},
+            "logical_score":         {"type": "number"},
+            "coefficient_adjustments": {"type": "object"},
+        },
+        "required": ["persona_arguments", "consensus_feedback", "logical_score"],
+    }
+    try:
+        return GenerationConfig(
+            temperature=0.4,
+            response_mime_type="application/json",
+            response_schema=schema,
+            max_output_tokens=4096,
+        )
+    except TypeError:
+        # Older SDK versions that don't support response_schema — fall back gracefully
+        logger.warning("response_schema not supported in this SDK version; falling back to plain JSON mode")
+        return GenerationConfig(
+            temperature=0.4,
+            response_mime_type="application/json",
+            max_output_tokens=4096,
+        )
+
+
 def make_stream_config(temperature: float = 0.2) -> GenerationConfig:
     """GenerationConfig for streaming text responses (RAG chatbot)."""
     return GenerationConfig(

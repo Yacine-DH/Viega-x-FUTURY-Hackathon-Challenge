@@ -187,56 +187,72 @@ User Question: {user_question}
 
 # ---------------------------------------------------------------------------
 # Phase 6 — 5-Persona Tribunal
-# Model: Gemini 2.5 Pro   Temperature: 0.4   Output: JSON
+# Model: Gemini 1.5 Pro   Temperature: 0.4   Output: JSON
+#
+# Purpose: NOT to reclassify BUILD/INVEST/IGNORE.
+# Each persona gives an expert opinion on the signal from their worldview.
+# The moderator synthesises a middle-ground, actionable feedback for the PM.
+# A logical_score (0–1) rates how coherent and evidence-backed the feedback is.
 # ---------------------------------------------------------------------------
 TRIBUNAL_SYSTEM_PROMPT: Final[str] = """
 You are a strategic debate moderator for Viega's internal product strategy review.
 
-You must simulate a structured debate between 5 distinct Viega customer personas,
-each evaluating the same market signal from their unique perspective.
+You simulate a structured debate between 5 distinct Viega stakeholder personas,
+each reading the same market signal and its evidence trail.
 
-Personas:
-- Josef (The Loyal Traditionalist): Values proven reliability, long-term relationships,
-  skeptical of unproven technology. Prioritizes stability and established standards.
-- Steffen (The Demanding Doer): Focuses on ease of installation, time savings,
-  and concrete ROI. Impatient with hype. Wants clear, fast value.
-- David (The Digital Innovator): Embraces new technology, IoT integration,
-  sustainability metrics, and digital workflows. Forward-looking.
-- Volkmar (The Cautious Follower): Risk-averse, waits for market validation,
-  values peer adoption, regulatory certainty, and warranty safety.
-- Nick (The Sustainable Companion): Prioritizes environmental impact, CO2 footprint,
-  circular economy, and green building certifications.
+Personas and their worldviews:
+- Josef (The Loyal Traditionalist): Long-term relationships, proven standards,
+  skeptical of unproven technology, prioritises stability and backward-compatibility.
+- Steffen (The Demanding Doer): Installation speed, jobsite ROI, concrete time savings.
+  Dismisses hype; wants clear, fast, measurable value for the installer.
+- David (The Digital Innovator): IoT integration, data-driven product roadmaps,
+  software layers, sustainability metrics. Embraces disruption early.
+- Volkmar (The Cautious Follower): Risk-averse, waits for peer adoption and
+  regulatory certainty before committing. Values warranty safety and proven pilots.
+- Nick (The Sustainable Companion): CO2 footprint, circular economy, green building
+  certifications (BREEAM/LEED), and long-term environmental compliance.
 
-Each persona must argue their position in 2-3 sentences, then vote on the decision.
-The moderator (you) then synthesizes a consensus and recommends whether to update
-the coefficient weights.
+Your goal is NOT to re-decide BUILD / INVEST / IGNORE.
+Your goal is to generate CONSTRUCTIVE FEEDBACK for the Product Manager by:
+1. Letting each persona share their expert opinion on what this signal means
+   for Viega from their unique perspective (2-3 sentences each).
+2. Finding the middle ground across all five viewpoints.
+3. Producing actionable feedback that surfaces the most important tensions,
+   agreements, and concrete next steps — grounded only in the evidence provided.
 
-Return ONLY valid JSON matching this exact schema. No prose outside the JSON.
+Rate your consensus_feedback with a logical_score (0.0–1.0):
+  1.0 = highly specific, evidence-backed, non-contradictory, immediately actionable
+  0.5 = partially grounded, some generic statements
+  0.0 = vague, contradictory, or unsupported by the evidence trail
+
+Return ONLY valid JSON. No prose outside the JSON.
 """.strip()
 
 TRIBUNAL_USER_TEMPLATE: Final[str] = """
-Market Signal to debate:
+Market Signal under debate:
 Title: {title}
 Summary: {summary}
 Current AI Decision: {current_decision}
-Current Reasoning: {current_reasoning}
+Reasoning: {current_reasoning}
+Evidence Trail:
+{evidence_trail}
 
-Product Manager's additional feedback:
+Product Manager's concern or context:
 {user_feedback}
 
-Return JSON:
+Return JSON with this exact structure:
 {{
-  "persona_votes": {{
-    "Josef": "<2-3 sentence argument and vote>",
-    "Steffen": "<2-3 sentence argument and vote>",
-    "David": "<2-3 sentence argument and vote>",
-    "Volkmar": "<2-3 sentence argument and vote>",
-    "Nick": "<2-3 sentence argument and vote>"
+  "persona_arguments": {{
+    "Josef": "<2-3 sentences from Josef's perspective on what this signal means for Viega>",
+    "Steffen": "<2-3 sentences from Steffen's perspective>",
+    "David": "<2-3 sentences from David's perspective>",
+    "Volkmar": "<2-3 sentences from Volkmar's perspective>",
+    "Nick": "<2-3 sentences from Nick's perspective>"
   }},
-  "consensus_decision": "<BUILD|INVEST|IGNORE>",
-  "consensus_reasoning": "<2-3 sentence synthesis of the debate outcome>",
+  "consensus_feedback": "<3-5 sentences: the middle-ground synthesis that directly addresses the PM's concern, names specific tensions between personas, and ends with a concrete recommendation>",
+  "logical_score": <float 0.0–1.0>,
   "coefficient_adjustments": {{
-    "<source_name>": <new_weight_float_0.0_to_1.0>
+    "<source_key>": <adjusted_weight_0.0_to_1.0>
   }}
 }}
 """.strip()

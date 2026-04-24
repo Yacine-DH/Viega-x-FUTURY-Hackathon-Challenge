@@ -109,7 +109,7 @@ async def save_tribunal_session(signal_id: str, response: TribunalResponse) -> s
     data = response.model_dump(mode="json")
     data["saved_at"] = datetime.now(timezone.utc).isoformat()
     await client.collection(settings.tribunal_sessions_collection).document(signal_id).set(data)
-    logger.info("Saved tribunal session (signal_id=%s, consensus=%s)", signal_id, response.consensus_decision)
+    logger.info("Saved tribunal session (signal_id=%s, score=%.2f)", signal_id, response.logical_score)
     return signal_id
 
 

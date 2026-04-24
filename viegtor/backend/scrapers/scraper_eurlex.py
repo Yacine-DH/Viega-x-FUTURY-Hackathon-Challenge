@@ -38,7 +38,7 @@ class EurLexScraper(BaseScraper):
     source_name = "eurlex_regulations"
     source_weight = 1.0
 
-    def __init__(self, webhook_url: str, _max_age_hours: int = _RETENTION_DAYS * 24) -> None:
+    def __init__(self, webhook_url: str, max_age_hours: int = _RETENTION_DAYS * 24) -> None:
         # Regulations stay relevant for 30 days regardless of the global freshness setting.
         super().__init__(webhook_url, max_age_hours=_RETENTION_DAYS * 24)
 
