@@ -15,7 +15,6 @@ import NavItem from '../components/NavItem';
 import PreferenceToggle from '../components/PreferenceToggle';
 import SignalCard from '../components/SignalCard';
 import DebateModal from '../components/DebateModal';
-import Onboarding from '../components/Onboarding';
 import Logo from '../components/Logo';
 import UIMetricsBar from '../components/UIMetricsBar';
 import RagChatbot from '../components/RagChatbot';
@@ -27,64 +26,12 @@ const TIER_STYLES = {
 };
 
 export default function Dashboard({ onSignOut }) {
-  const [onboarded, setOnboarded] = useState(false);
-  const [focus, setFocus] = useState(null);
+  const [focus] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [debateOpen, setDebateOpen] = useState(false);
   const [activePersonas, setActivePersonas] = useState({ david: true, josef: true, steffen: true });
   const [typeFilter, setTypeFilter] = useState('All');
   const [preference, setPreference] = useState('balanced');
-
-  const [signals, setSignals] = useState([]);
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [backendLive, setBackendLive] = useState(false);
-
-  // Fetch live signals; fall back to adapted mock data if backend unavailable
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setLoading(true);
-      try {
-        const [liveSignals, liveStats] = await Promise.all([getSignals(), getSignalStats()]);
-        if (cancelled) return;
-        if (liveSignals.length > 0) {
-          setSignals(adaptSignals(liveSignals));
-          setBackendLive(true);
-        } else {
-          setSignals(adaptMockSignals());
-        }
-        setStats(liveStats);
-      } catch {
-        if (cancelled) return;
-        setSignals(adaptMockSignals());
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    load();
-    return () => { cancelled = true; };
-  }, []);
-
-  // Mock signals shaped to match the adapted format
-  function adaptMockSignals() {
-    return MOCK_SIGNALS.map((s) => ({
-      ...s,
-      id: String(s.id),
-      tier: null,
-      ui_metrics: null,
-      evidence_trail: s.reasoning,
-      url: null,
-    }));
-  }
-
-  const handleOnboarding = (focusId) => {
-    setFocus(focusId);
-    if (focusId === 'digital') setActivePersonas({ david: true, josef: false, steffen: true });
-    else if (focusId === 'reliability') setActivePersonas({ david: false, josef: true, steffen: true });
-    else setActivePersonas({ david: true, josef: true, steffen: true });
-    setOnboarded(true);
-  };
 
   const selected = signals.find((s) => s.id === selectedId);
   const types = ['All'].concat(Array.from(new Set(signals.map((s) => s.type))));
@@ -108,9 +55,10 @@ export default function Dashboard({ onSignOut }) {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white" style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif' }}>
-      {!onboarded && <Onboarding onComplete={handleOnboarding} />}
-
-      <header className="sticky top-0 z-30">
+      <header
+        className="sticky top-0 z-30"
+        style={{ backgroundColor: 'transparent' }}
+      >
         <div className="flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
             <Logo size={24} />

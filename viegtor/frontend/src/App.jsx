@@ -1,20 +1,12 @@
 import React, { useState } from 'react';
 import HomePage from './pages/HomePage';
 import Dashboard from './pages/Dashboard';
-import LoginModal from './components/LoginModal';
 
 export default function App() {
   const [view, setView] = useState('home');
-  const [showLogin, setShowLogin] = useState(false);
 
-  const handleLoginSuccess = () => {
-    setShowLogin(false);
-    setView('app');
-  };
-
-  const handleSignOut = () => {
-    setView('home');
-  };
+  const enter = () => setView('app');
+  const signOut = () => setView('home');
 
   const keyframes =
     '@keyframes debateFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }' +
@@ -27,15 +19,9 @@ export default function App() {
     <>
       <style dangerouslySetInnerHTML={{ __html: keyframes }} />
       {view === 'home' && (
-        <HomePage
-          onLaunch={() => setShowLogin(true)}
-          onSignIn={() => setShowLogin(true)}
-        />
+        <HomePage onEnterCO={enter} onEnterExpert={enter} />
       )}
-      {view === 'app' && <Dashboard onSignOut={handleSignOut} />}
-      {showLogin && (
-        <LoginModal onSuccess={handleLoginSuccess} onClose={() => setShowLogin(false)} />
-      )}
+      {view === 'app' && <Dashboard onSignOut={signOut} />}
     </>
   );
 }
