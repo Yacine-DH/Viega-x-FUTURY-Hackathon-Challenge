@@ -13,25 +13,15 @@ import NavItem from '../components/NavItem';
 import PreferenceToggle from '../components/PreferenceToggle';
 import SignalCard from '../components/SignalCard';
 import DebateModal from '../components/DebateModal';
-import Onboarding from '../components/Onboarding';
 import Logo from '../components/Logo';
 
 export default function Dashboard({ onSignOut }) {
-  const [onboarded, setOnboarded] = useState(false);
-  const [focus, setFocus] = useState(null);
+  const [focus] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [debateOpen, setDebateOpen] = useState(false);
   const [activePersonas, setActivePersonas] = useState({ david: true, josef: true, steffen: true });
   const [typeFilter, setTypeFilter] = useState('All');
   const [preference, setPreference] = useState('balanced');
-
-  const handleOnboarding = (focusId) => {
-    setFocus(focusId);
-    if (focusId === 'digital') setActivePersonas({ david: true, josef: false, steffen: true });
-    else if (focusId === 'reliability') setActivePersonas({ david: false, josef: true, steffen: true });
-    else setActivePersonas({ david: true, josef: true, steffen: true });
-    setOnboarded(true);
-  };
 
   const selected = SIGNALS.find((s) => s.id === selectedId);
   const types = ['All'].concat(Array.from(new Set(SIGNALS.map((s) => s.type))));
@@ -57,8 +47,6 @@ export default function Dashboard({ onSignOut }) {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white" style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif' }}>
-      {!onboarded && <Onboarding onComplete={handleOnboarding} />}
-
       <header
         className="sticky top-0 z-30"
         style={{ backgroundColor: 'transparent' }}
