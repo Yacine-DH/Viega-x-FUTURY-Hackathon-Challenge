@@ -418,11 +418,8 @@ export default function TrendDetailPage({ signal, onBack }) {
                     <span className="truncate">{primarySource.url}</span>
                   </a>
                 ) : (
-                  <div className="text-xs text-zinc-500">Link unavailable</div>
-                )}
-              </div>
-              <span className="text-xs text-zinc-500 flex-shrink-0">{primarySource.ago}</span>
-            </div>
+              <div className="text-xs text-zinc-500">Link unavailable</div>
+            )}
           </div>
 
           <div className="rounded-2xl border border-zinc-800 p-4" style={{ backgroundColor: '#0f0f12' }}>

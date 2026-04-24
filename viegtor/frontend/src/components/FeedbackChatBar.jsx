@@ -1,191 +1,234 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { Paperclip, Mic, Send, X, ChevronDown, ChevronUp } from 'lucide-react';
-import { YELLOW, REC_STYLES } from '../constants/styles';
-import DebateModal from './DebateModal';
+import React, { useEffect, useRef, useState } from 'react';
+import { Send, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
+import { YELLOW } from '../constants/styles';
+
+const BASE = '/api';
+
+async function fetchRagAnswer(signalId, question) {
+  const res = await fetch(`${BASE}/chat/rag/sync`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ signal_id: signalId, user_question: question }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  return data.answer;
+}
+
+function ThinkingDots() {
+  return (
+    <div className="flex items-center gap-2 px-4 py-3">
+      <div
+        className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+        style={{ backgroundColor: 'rgba(255,204,0,0.12)', border: '1px solid rgba(255,204,0,0.3)' }}
+      >
+        <MessageSquare className="w-3.5 h-3.5" style={{ color: YELLOW }} />
+      </div>
+      <div className="flex items-center gap-1 px-3 py-2 rounded-2xl rounded-tl-sm" style={{ backgroundColor: '#18181b', border: '1px solid #27272a' }}>
+        <span className="text-xs text-zinc-400 mr-1">Viegtor is thinking</span>
+        {[0, 160, 320].map((d) => (
+          <span
+            key={d}
+            className="w-1.5 h-1.5 rounded-full bg-zinc-500 inline-block"
+            style={{
+              animation: 'bounce 1.2s infinite',
+              animationDelay: `${d}ms`,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Lightweight markdown renderer: handles **bold** and paragraph breaks
+function renderMarkdown(text) {
+  return text.split('\n\n').map((para, pIdx) => {
+    const parts = para.split(/(\*\*[^*]+\*\*)/g);
+    return (
+      <p key={pIdx} className={pIdx > 0 ? 'mt-2' : ''}>
+        {parts.map((part, i) => {
+          if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={i} className="font-semibold text-white">{part.slice(2, -2)}</strong>;
+          }
+          return <span key={i}>{part}</span>;
+        })}
+      </p>
+    );
+  });
+}
+
+function ChatBubble({ role, text }) {
+  const isUser = role === 'user';
+  return (
+    <div className={`flex items-end gap-2.5 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+      {!isUser && (
+        <div
+          className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mb-0.5"
+          style={{ backgroundColor: 'rgba(255,204,0,0.12)', border: '1px solid rgba(255,204,0,0.3)' }}
+        >
+          <MessageSquare className="w-3.5 h-3.5" style={{ color: YELLOW }} />
+        </div>
+      )}
+      <div
+        className="max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed"
+        style={{
+          backgroundColor: isUser ? YELLOW : '#18181b',
+          color: isUser ? '#000' : '#d4d4d8',
+          borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+          border: isUser ? 'none' : '1px solid #27272a',
+          fontWeight: isUser ? 500 : 400,
+          wordBreak: 'break-word',
+        }}
+      >
+        {isUser ? text : renderMarkdown(text)}
+      </div>
+    </div>
+  );
+}
 
 export default function FeedbackChatBar({ signals = [], initialAttachedId = null, lockAttachment = false }) {
-  const [text, setText] = useState('');
-  const [attachedId, setAttachedId] = useState(
-    initialAttachedId != null ? String(initialAttachedId) : null
-  );
-  const [open, setOpen] = useState(false);
-  const [showMore, setShowMore] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const [tribunal, setTribunal] = useState(null); // { signal, feedback }
-  const popRef = useRef(null);
+  const attachedId = initialAttachedId != null ? String(initialAttachedId) : null;
+  const attached = signals.find((s) => String(s.id) === attachedId) || null;
 
-  const sorted = useMemo(
-    () => [...signals].sort((a, b) => b.impact - a.impact),
-    [signals]
-  );
-  const visible = showMore ? sorted : sorted.slice(0, 4);
-  const attached = signals.find((s) => String(s.id) === attachedId);
+  const [messages, setMessages] = useState([]);
+  const [text, setText] = useState('');
+  const [thinking, setThinking] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  const bottomRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
-    const onDoc = (e) => {
-      if (popRef.current && !popRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, []);
+    if (expanded) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, thinking, expanded]);
 
-  const active = hovered || focused;
-  const glow = active
-    ? `-18px 0 32px -8px rgba(255,204,0,0.35), 18px 0 32px -8px rgba(255,255,255,0.25), 0 0 0 1px rgba(255,204,0,0.25)`
-    : `0 0 0 1px #27272a`;
-
-  const send = () => {
+  const send = async () => {
     const msg = text.trim();
-    if (!msg || !attached) return;
-    setTribunal({ signal: attached, feedback: msg });
+    if (!msg || !attached || thinking) return;
+
+    const userMsg = { role: 'user', text: msg };
+    setMessages((prev) => [...prev, userMsg]);
     setText('');
-    if (!lockAttachment) setAttachedId(null);
+    setThinking(true);
+    setExpanded(true);
+
+    const start = Date.now();
+    try {
+      const answer = await fetchRagAnswer(attached.id, msg);
+      const elapsed = Date.now() - start;
+      const minWait = 2000;
+      if (elapsed < minWait) {
+        await new Promise((r) => setTimeout(r, minWait - elapsed));
+      }
+      setMessages((prev) => [...prev, { role: 'assistant', text: answer }]);
+    } catch (err) {
+      const elapsed = Date.now() - start;
+      if (elapsed < 2000) await new Promise((r) => setTimeout(r, 2000 - elapsed));
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', text: `Sorry, I couldn't retrieve an answer: ${err.message}` },
+      ]);
+    } finally {
+      setThinking(false);
+    }
   };
 
+  const hasChat = messages.length > 0 || thinking;
+
   return (
-    <>
-      <div className="relative">
-        {attached && (
-          <div className="absolute -top-9 left-4 flex items-center gap-2 px-2.5 py-1 rounded-md border text-xs text-zinc-300"
-            style={{ borderColor: lockAttachment ? 'rgba(255,204,0,0.4)' : '#3f3f46', backgroundColor: lockAttachment ? 'rgba(255,204,0,0.08)' : '#18181b' }}
-          >
-            <span
-              className="px-1.5 py-0.5 rounded text-[10px] font-bold"
-              style={{ backgroundColor: REC_STYLES[attached.recommendation].bg, color: REC_STYLES[attached.recommendation].text }}
-            >
-              {attached.recommendation}
-            </span>
-            <span className="max-w-[260px] truncate">{attached.title}</span>
-            {lockAttachment ? (
-              <span className="text-[10px] text-zinc-500 uppercase tracking-wider">context</span>
-            ) : (
-              <button onClick={() => setAttachedId(null)} className="text-zinc-500 hover:text-white">
-                <X className="w-3 h-3" />
-              </button>
-            )}
-          </div>
-        )}
-
+    <div
+      className="rounded-2xl overflow-hidden"
+      style={{
+        backgroundColor: '#0f0f12',
+        border: '1px solid #27272a',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+      }}
+    >
+      {/* Chat history — shown only when expanded and has messages */}
+      {expanded && hasChat && (
         <div
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-          className="rounded-2xl transition-all duration-300"
-          style={{
-            backgroundColor: '#0f0f12',
-            boxShadow: glow,
-          }}
+          className="flex flex-col gap-3 px-3 pt-3 overflow-y-auto"
+          style={{ maxHeight: 320 }}
         >
-          <div className="flex items-center gap-2 px-3 py-2.5">
-            <div className="relative" ref={popRef}>
-              <button
-                onClick={() => !lockAttachment && setOpen((o) => !o)}
-                disabled={lockAttachment}
-                className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-zinc-400"
-                title={lockAttachment ? 'Trend attached as context' : 'Attach a trend'}
-              >
-                <Paperclip className="w-4 h-4" />
-              </button>
-
-              {open && !lockAttachment && (
-                <div
-                  className="absolute bottom-full left-0 mb-2 w-[380px] rounded-xl border border-zinc-800 shadow-2xl z-40"
-                  style={{ backgroundColor: '#0f0f12' }}
-                >
-                  <div className="px-3 py-2 border-b border-zinc-800 flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Attach a trend</span>
-                    <span className="text-xs text-zinc-500">{sorted.length} available</span>
-                  </div>
-                  <ul className="max-h-[320px] overflow-y-auto p-2 space-y-1">
-                    {visible.map((s) => {
-                      const rec = REC_STYLES[s.recommendation];
-                      const isSel = attachedId === s.id;
-                      return (
-                        <li key={s.id}>
-                          <button
-                            onClick={() => {
-                              setAttachedId(isSel ? null : String(s.id));
-                              setOpen(false);
-                            }}
-                            className="w-full text-left p-2.5 rounded-lg border hover:bg-zinc-900 transition"
-                            style={{
-                              borderColor: isSel ? YELLOW : '#27272a',
-                              backgroundColor: isSel ? 'rgba(255,204,0,0.05)' : 'transparent',
-                            }}
-                          >
-                            <div className="flex items-start gap-2">
-                              <span
-                                className="px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0"
-                                style={{ backgroundColor: rec.bg, color: rec.text }}
-                              >
-                                {s.recommendation}
-                              </span>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-xs font-semibold text-white leading-snug line-clamp-2">{s.title}</div>
-                                <div className="text-[11px] text-zinc-500 mt-0.5 flex items-center gap-2">
-                                  <span>{s.type}</span>
-                                  <span>·</span>
-                                  <span>Impact {s.impact}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  {sorted.length > 4 && (
-                    <button
-                      onClick={() => setShowMore((v) => !v)}
-                      className="w-full px-3 py-2 text-xs text-zinc-400 hover:text-white hover:bg-zinc-900 border-t border-zinc-800 flex items-center justify-center gap-1"
-                    >
-                      {showMore ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                      {showMore ? 'Show less' : `Show ${sorted.length - 4} more`}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onFocus={() => setFocused(true)}
-              onBlur={() => setFocused(false)}
-              onKeyDown={(e) => { if (e.key === 'Enter') send(); }}
-              placeholder={attached ? 'Share your opinion on this trend…' : 'Attach a trend first to share feedback…'}
-              className="flex-1 bg-transparent text-sm text-white placeholder-zinc-500 focus:outline-none px-1"
-            />
-
-            <button
-              onClick={() => {}}
-              className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition"
-              title="Voice input (coming soon)"
-            >
-              <Mic className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={send}
-              disabled={!text.trim() || !attached}
-              className="p-2 rounded-lg transition disabled:opacity-40"
-              style={{ backgroundColor: YELLOW, color: '#000' }}
-              title={attached ? 'Summon tribunal with your feedback' : 'Attach a trend first'}
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </div>
+          {messages.map((m, i) => (
+            <ChatBubble key={i} role={m.role} text={m.text} />
+          ))}
+          {thinking && <ThinkingDots />}
+          <div ref={bottomRef} />
         </div>
-      </div>
-
-      {tribunal && (
-        <DebateModal
-          signal={tribunal.signal}
-          initialFeedback={tribunal.feedback}
-          autoStart
-          onClose={() => setTribunal(null)}
-        />
       )}
-    </>
+
+      {/* Collapse / expand toggle when there are messages */}
+      {hasChat && (
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="w-full flex items-center justify-center gap-1 py-1 text-[11px] text-zinc-500 hover:text-zinc-300 transition"
+          style={{ borderBottom: '1px solid #1f1f23' }}
+        >
+          {expanded ? (
+            <><ChevronDown className="w-3 h-3" /> Hide chat</>
+          ) : (
+            <><ChevronUp className="w-3 h-3" /> {messages.length} message{messages.length !== 1 ? 's' : ''}</>
+          )}
+        </button>
+      )}
+
+      {/* Attached signal badge */}
+      {attached && (
+        <div
+          className="flex items-center gap-2 px-3 pt-2.5 pb-1"
+          style={{ borderTop: hasChat ? '1px solid #1f1f23' : 'none' }}
+        >
+          <span
+            className="px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0"
+            style={{
+              backgroundColor: attached.recommendation === 'BUILD' ? 'rgba(255,204,0,0.15)' : attached.recommendation === 'INVEST' ? 'rgba(59,130,246,0.15)' : 'rgba(113,113,122,0.15)',
+              color: attached.recommendation === 'BUILD' ? YELLOW : attached.recommendation === 'INVEST' ? '#60a5fa' : '#71717a',
+            }}
+          >
+            {attached.recommendation}
+          </span>
+          <span className="text-[11px] text-zinc-400 truncate">{attached.title}</span>
+          {lockAttachment && (
+            <span className="text-[10px] text-zinc-600 uppercase tracking-wider ml-auto flex-shrink-0">context</span>
+          )}
+        </div>
+      )}
+
+      {/* Input row */}
+      <div className="flex items-center gap-2 px-3 py-2.5">
+        <input
+          ref={inputRef}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+          placeholder={
+            !attached
+              ? 'No signal attached…'
+              : thinking
+              ? 'Viegtor is thinking…'
+              : 'Ask anything about this signal…'
+          }
+          disabled={!attached || thinking}
+          className="flex-1 bg-transparent text-sm text-white placeholder-zinc-500 focus:outline-none"
+          style={{ minWidth: 0 }}
+        />
+        <button
+          onClick={send}
+          disabled={!text.trim() || !attached || thinking}
+          className="p-2 rounded-xl transition-all disabled:opacity-40"
+          style={{ backgroundColor: YELLOW, color: '#000' }}
+          title={attached ? 'Ask Viegtor' : 'Attach a signal first'}
+        >
+          <Send className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
   );
 }
