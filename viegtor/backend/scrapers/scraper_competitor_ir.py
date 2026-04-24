@@ -2,17 +2,15 @@
 
 EU competitors (Geberit, Aalberts, Aliaxis): Playwright stealth on their
 investor-relations press release pages.
-US competitor (NIBCO): SEC EDGAR free Atom feed (no API key required).
+US competitor (NIBCO): Playwright stealth on their news page.
 
 If Playwright is blocked: document in SCRAPER_FALLBACKS.md and switch to
 Firecrawl or ZenRows.
 """
-import asyncio
 import logging
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-
-import feedparser
+from urllib.parse import urlparse
 
 from scrapers.base_scraper import BaseScraper
 from schemas.signals import RawSignal
@@ -43,11 +41,13 @@ EU_COMPETITOR_PAGES = [
     },
 ]
 
-NIBCO_EDGAR_RSS = (
-    "https://www.nibco.com/news-events/news/"
-    "?action=getcompany&company=nibco&type=8-K"
-    "&dateb=&owner=include&count=10&search_text=&output=atom"
-)
+NIBCO_PAGE = {
+    "name": "nibco",
+    "url": "https://www.nibco.com/news-events/news/",
+    "article_selector": "article, .news-item, .press-release-item, .entry",
+    "title_selector": "h2, h3, h4, .entry-title, .news-title",
+    "date_selector": "time, .date, .entry-date, [datetime]",
+}
 
 
 class CompetitorIRScraper(BaseScraper):
@@ -56,7 +56,7 @@ class CompetitorIRScraper(BaseScraper):
 
     async def scrape(self) -> list[RawSignal]:
         eu_signals = await self._scrape_eu_competitors()
-        nibco_signals = await self._scrape_nibco_edgar()
+        nibco_signals = await self._scrape_nibco_playwright()
         return eu_signals + nibco_signals
 
     async def _scrape_eu_competitors(self) -> list[RawSignal]:
@@ -92,7 +92,6 @@ class CompetitorIRScraper(BaseScraper):
 
                 href = await article.get_attribute("href") or competitor["url"]
                 if href.startswith("/"):
-                    from urllib.parse import urlparse
                     base = urlparse(competitor["url"])
                     href = f"{base.scheme}://{base.netloc}{href}"
 
@@ -129,40 +128,14 @@ class CompetitorIRScraper(BaseScraper):
         except Exception:
             return None
 
-    async def _scrape_nibco_edgar(self) -> list[RawSignal]:
-        """Fetches NIBCO 8-K filings from SEC EDGAR free Atom feed (no key needed)."""
+    async def _scrape_nibco_playwright(self) -> list[RawSignal]:
+        """Scrapes NIBCO news page using Playwright stealth with 3-day freshness filter."""
         signals: list[RawSignal] = []
-        loop = asyncio.get_event_loop()
         try:
-            feed = await loop.run_in_executor(None, feedparser.parse, NIBCO_EDGAR_RSS)
+            items = await self._scrape_ir_page(NIBCO_PAGE)
+            signals.extend(items)
         except Exception:
-            logger.exception("Failed to fetch NIBCO SEC EDGAR feed")
-            return signals
-
-        for entry in feed.entries:
-            title: str = entry.get("title", "")
-            link: str = entry.get("link", NIBCO_EDGAR_RSS)
-            pub_date = self._parse_feed_date(entry)
-
-            if pub_date and not self._is_fresh(pub_date):
-                continue
-
-            signals.append(RawSignal(
-                source=self.source_name,
-                url=link,
-                raw_text=f"[NIBCO SEC 8-K] {title}",
-                timestamp=pub_date or datetime.now(timezone.utc),
-                source_weight=self.source_weight,
-            ))
-
+            logger.exception(
+                "Playwright scrape failed for nibco — add to SCRAPER_FALLBACKS.md"
+            )
         return signals
-
-    def _parse_feed_date(self, entry: dict) -> datetime | None:
-        for key in ("published", "updated"):
-            raw = entry.get(key)
-            if raw:
-                try:
-                    return parsedate_to_datetime(raw).replace(tzinfo=timezone.utc)
-                except Exception:
-                    pass
-        return None

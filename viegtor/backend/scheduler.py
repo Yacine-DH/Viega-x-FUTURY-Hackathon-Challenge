@@ -13,6 +13,7 @@ from config import Settings
 from scrapers.scraper_epo_patents import EpoPatentsScraper
 from scrapers.scraper_eurlex import EurLexScraper
 from scrapers.scraper_competitor_ir import CompetitorIRScraper
+from scrapers.scraper_competitor_patents import CompetitorPatentsScraper
 from scrapers.scraper_ted_tenders import TedTendersScraper
 from scrapers.scraper_commodities import CommoditiesScraper
 from scrapers.scraper_news import NewsScraper
@@ -36,6 +37,7 @@ def setup_scheduler(settings: Settings) -> AsyncIOScheduler:
         ),
         EurLexScraper(webhook_url=webhook_url, max_age_hours=max_age),
         CompetitorIRScraper(webhook_url=webhook_url, max_age_hours=max_age),
+        CompetitorPatentsScraper(webhook_url=webhook_url, max_age_hours=max_age),
         TedTendersScraper(webhook_url=webhook_url, max_age_hours=max_age),
         CommoditiesScraper(
             webhook_url=webhook_url,
@@ -75,6 +77,7 @@ async def run_all_scrapers_once(settings: Settings) -> dict[str, int]:
         EpoPatentsScraper(webhook_url, settings.epo_client_id, settings.epo_client_secret, max_age),
         EurLexScraper(webhook_url, max_age),
         CompetitorIRScraper(webhook_url, max_age),
+        CompetitorPatentsScraper(webhook_url, max_age),
         TedTendersScraper(webhook_url, max_age),
         CommoditiesScraper(webhook_url, settings.trading_economics_api_key, max_age),
         NewsScraper(webhook_url, settings.news_api_key, max_age),

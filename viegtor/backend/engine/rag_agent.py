@@ -1,7 +1,7 @@
 """RAG Evidence Chatbot agent.
 
 Retrieves a StrategicSignal's full context from Firestore and injects it
-into a Gemini 1.5 Pro prompt. Answers are grounded strictly in the stored
+into a Gemini 2.5 Flash prompt. Answers are grounded strictly in the stored
 evidence trail — the model is forbidden from adding outside knowledge.
 
 Streaming architecture:

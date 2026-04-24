@@ -9,7 +9,7 @@ from typing import Final
 
 # ---------------------------------------------------------------------------
 # Phase 2 — Zero-Shot Anti-Hallucination Filter
-# Model: Gemini 1.5 Flash   Temperature: 0.0   Output: JSON
+# Model: Gemini 2.5 Flash   Temperature: 0.0   Output: JSON
 # ---------------------------------------------------------------------------
 ZERO_SHOT_SYSTEM_PROMPT: Final[str] = """
 You are an intelligence filter for Viega, a global leader in installation technology
@@ -135,7 +135,7 @@ Return JSON:
 
 # ---------------------------------------------------------------------------
 # Phase 5 — RAG Evidence Chatbot
-# Model: Gemini 1.5 Pro   Temperature: 0.2   Output: Streamed text
+# Model: Gemini 2.5 Pro   Temperature: 0.2   Output: Streamed text
 # ---------------------------------------------------------------------------
 RAG_SYSTEM_PROMPT: Final[str] = """
 You are a strategic intelligence assistant for Viega Product Managers.
@@ -187,7 +187,7 @@ User Question: {user_question}
 
 # ---------------------------------------------------------------------------
 # Phase 6 — 5-Persona Tribunal
-# Model: Gemini 1.5 Pro   Temperature: 0.4   Output: JSON
+# Model: Gemini 2.5 Pro   Temperature: 0.4   Output: JSON
 # ---------------------------------------------------------------------------
 TRIBUNAL_SYSTEM_PROMPT: Final[str] = """
 You are a strategic debate moderator for Viega's internal product strategy review.

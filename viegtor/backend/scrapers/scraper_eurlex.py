@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 
 EURLEX_RSS_URLS = [
     # Recent EU directives
-    "https://eur-lex.europa.eu/tools/rss.do?type=recent&maxResults=20&lang=en&typeOfActStatus=directive",
+    "https://eur-lex.europa.eu/EN/display-feed.rss?rssId=101",
     # Recent EU regulations
-    "https://eur-lex.europa.eu/tools/rss.do?type=recent&maxResults=20&lang=en&typeOfActStatus=regulation",
+    "https://eur-lex.europa.eu/EN/display-feed.rss?rssId=102",
 ]
 
 KEYWORDS = [
