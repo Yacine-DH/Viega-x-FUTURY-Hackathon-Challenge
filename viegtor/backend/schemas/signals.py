@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from pydantic import BaseModel, Field, HttpUrl
 
 from schemas.decisions import DecisionType, RoutingFactors, UIMetrics
@@ -36,6 +36,8 @@ class StrategicSignal(BaseModel):
     ui_metrics: UIMetrics
     reasoning: str
     evidence_trail: list[str]
+    tier: Literal["ACT", "TRACK", "FILED"] = Field(default="FILED", description="Dashboard priority tier")
+    tier_reasoning: str = Field(default="", description="Explains how the tier was computed")
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 

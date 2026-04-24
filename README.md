@@ -263,7 +263,7 @@ All available endpoints:
 }
 ```
 
-The response will include the decision (`BUILD / INVEST / ADJUST / IGNORE`), the AI reasoning, and the weighted scores.
+The response will include the decision (`BUILD / INVEST / IGNORE`), the AI reasoning, and the weighted scores.
 
 
 **Test the RAG chatbot** (once at least one signal is in Firestore):
@@ -273,7 +273,7 @@ The response will include the decision (`BUILD / INVEST / ADJUST / IGNORE`), the
 ```json
 {
   "signal_id": "<signal_id from step above>",
-  "user_question": "Why was this classified as ADJUST and not BUILD?"
+  "user_question": "Why was this classified as BUILD and not INVEST?"
 }
 ```
 
@@ -319,7 +319,7 @@ Viega-x-FUTURY-Hackathon-Challenge/
         │   ├── prompts.py           ← All LLM prompt templates (zero-shot, dual-pass, RAG, tribunal)
         │   ├── zero_shot_filter.py  ← Gemini Flash relevance classification
         │   ├── dual_pass_extractor.py ← Gemini Pro Pass 1 (routing factors) + Pass 2 (UI metrics)
-        │   ├── decision_classifier.py ← Pure-math weighted decision routing (BUILD/INVEST/ADJUST/IGNORE)
+        │   ├── decision_classifier.py ← Pure-math weighted decision routing (BUILD/INVEST/IGNORE)
         │   ├── rag_agent.py         ← Streaming RAG agent (evidence-grounded Q&A)
         │   ├── tribunal_engine.py   ← 5-persona Gemini Pro debate engine
         │   └── coefficient_adjuster.py ← Validates + persists tribunal weight changes
@@ -348,7 +348,7 @@ Scrapers (cron every 3 days)
             ├─ Gemini Flash zero-shot filter (irrelevant → discard)
             ├─ Gemini Pro Pass 1 → routing factors + title/summary/evidence
             ├─ Gemini Pro Pass 2 → UI display metrics
-            ├─ Math classifier → BUILD / INVEST / ADJUST / IGNORE
+            ├─ Math classifier → BUILD / INVEST / IGNORE
             └─ Firestore (strategic_signals)
                     │
                     ├─► GET /signals           → Dashboard

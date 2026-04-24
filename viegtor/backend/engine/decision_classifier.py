@@ -14,8 +14,9 @@ than a low-weight source (geopolitical news = 0.7).
 """
 import logging
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
-from schemas.decisions import DecisionType, RoutingFactors
+from schemas.decisions import DecisionType, RoutingFactors, UIMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -91,4 +92,87 @@ def classify(factors: RoutingFactors, source_weight: float) -> ClassificationRes
             "Scores are below all decision thresholds — likely noise or low-relevance content."
         ),
         weighted_scores=weighted_scores,
+    )
+
+
+# ── Tier routing ───────────────────────────────────────────────────────────────
+
+_ACT_COMPOSITE   = 0.65
+_TRACK_COMPOSITE = 0.40
+_ACT_AGE_HOURS   = 24
+_TRACK_AGE_HOURS = 72
+
+
+@dataclass
+class TierResult:
+    tier: str        # "ACT" | "TRACK" | "FILED"
+    reasoning: str
+
+
+def compute_tier(
+    decision: DecisionType,
+    ui_metrics: UIMetrics,
+    routing_factors: RoutingFactors,
+    source_weight: float,
+    created_at: datetime,
+) -> TierResult:
+    """Route a signal to ACT / TRACK / FILED for dashboard display.
+
+    IGNORE decisions are always FILED regardless of scores.
+    composite = urgency×0.40 + impact×0.30 + (quality×source_weight)×0.30
+    Age gates prevent stale signals from surfacing as high-priority.
+    """
+    if decision == DecisionType.IGNORE:
+        return TierResult(
+            tier="FILED",
+            reasoning="FILED: decision is IGNORE — no strategic action required regardless of scores.",
+        )
+
+    aware_created = (
+        created_at.replace(tzinfo=timezone.utc)
+        if created_at.tzinfo is None
+        else created_at
+    )
+    age_hours = (datetime.now(timezone.utc) - aware_created).total_seconds() / 3600
+
+    urgency_contrib    = ui_metrics.urgency * 0.40
+    impact_contrib     = ui_metrics.impact  * 0.30
+    confidence         = routing_factors.quality_score * source_weight
+    confidence_contrib = confidence * 0.30
+    composite          = urgency_contrib + impact_contrib + confidence_contrib
+
+    score_breakdown = (
+        f"urgency={ui_metrics.urgency:.2f}×0.40={urgency_contrib:.3f}, "
+        f"impact={ui_metrics.impact:.2f}×0.30={impact_contrib:.3f}, "
+        f"confidence=(quality={routing_factors.quality_score:.2f}×weight={source_weight:.2f})"
+        f"×0.30={confidence_contrib:.3f} → composite={composite:.3f}, age={age_hours:.1f}h"
+    )
+
+    if composite >= _ACT_COMPOSITE and age_hours < _ACT_AGE_HOURS:
+        return TierResult(
+            tier="ACT",
+            reasoning=(
+                f"ACT tier: {score_breakdown}. "
+                f"Composite ≥ {_ACT_COMPOSITE} and age < {_ACT_AGE_HOURS}h — "
+                "high urgency and impact from a credible source; decision requires attention this week."
+            ),
+        )
+
+    if composite >= _TRACK_COMPOSITE and age_hours < _TRACK_AGE_HOURS:
+        return TierResult(
+            tier="TRACK",
+            reasoning=(
+                f"TRACK tier: {score_breakdown}. "
+                f"Composite ≥ {_TRACK_COMPOSITE} and age < {_TRACK_AGE_HOURS}h — "
+                "signal is real but not time-critical; add to watchlist."
+            ),
+        )
+
+    return TierResult(
+        tier="FILED",
+        reasoning=(
+            f"FILED tier: {score_breakdown}. "
+            f"Composite < {_TRACK_COMPOSITE} or age ≥ {_TRACK_AGE_HOURS}h — "
+            "archived for context, no immediate action needed."
+        ),
     )

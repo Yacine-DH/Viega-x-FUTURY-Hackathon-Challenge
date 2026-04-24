@@ -55,6 +55,18 @@ async def ingest_signal(
         classification.weighted_scores["quality"],
     )
 
+    # ── Phase 3d: Tier routing ────────────────────────────────────────────
+    now = datetime.now(timezone.utc)
+    tier_result = decision_classifier.compute_tier(
+        decision=classification.decision,
+        ui_metrics=extracted.ui_metrics,
+        routing_factors=extracted.routing_factors,
+        source_weight=signal.source_weight,
+        created_at=now,
+    )
+    evidence_trail = extracted.evidence_trail + [tier_result.reasoning]
+    logger.info("Tier: %s (source=%s)", tier_result.tier, signal.source)
+
     # ── Build StrategicSignal ─────────────────────────────────────────────
     strategic_signal = StrategicSignal(
         signal_id=str(uuid.uuid4()),
@@ -68,7 +80,9 @@ async def ingest_signal(
         routing_factors=extracted.routing_factors,
         ui_metrics=extracted.ui_metrics,
         reasoning=classification.reasoning,
-        evidence_trail=extracted.evidence_trail,
+        evidence_trail=evidence_trail,
+        tier=tier_result.tier,
+        tier_reasoning=tier_result.reasoning,
     )
 
     await signal_repository.save_signal(strategic_signal)
