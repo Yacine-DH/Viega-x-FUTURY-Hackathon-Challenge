@@ -1,37 +1,60 @@
 import React from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, MessageSquare } from 'lucide-react';
 import { YELLOW, REC_STYLES, TYPE_COLORS } from '../constants/styles';
 import { applyPreference } from '../lib/preference';
+import { TIER_META } from '../lib/tier';
+import { cn } from '../lib/cn';
 
-export default function SignalCard({ signal, active, preference, onClick }) {
+export default function SignalCard({ signal, active, preference, onClick, variant = 'act' }) {
   const adjustedRec = applyPreference(signal, preference);
   const rec = REC_STYLES[adjustedRec];
   const RecIcon = rec.icon;
   const typeStyle = TYPE_COLORS[signal.type];
   const shifted = adjustedRec !== signal.recommendation;
+  const tone = TIER_META[variant === 'act' ? 'ACT' : 'TRACK'];
+  const isAct = variant === 'act';
+
   return (
     <button
       onClick={onClick}
-      className="w-full text-left p-4 rounded-xl border transition-all group cursor-pointer"
+      className={cn(
+        'w-full text-left rounded-xl border transition-all group relative overflow-hidden',
+        isAct ? 'p-5' : 'p-4'
+      )}
       style={{
-        borderColor: active ? YELLOW : '#27272a',
-        backgroundColor: active ? '#18181b' : '#09090b',
+        borderColor: active ? tone.color : '#27272a',
+        backgroundColor: active ? '#141417' : '#0c0c0f',
         transform: active ? 'translateY(-2px)' : 'translateY(0)',
-        boxShadow: active ? '0 8px 24px -12px rgba(255,204,0,0.35)' : 'none',
+        boxShadow: active
+          ? `0 12px 32px -12px ${tone.glow}, inset 0 1px 0 rgba(255,255,255,0.04)`
+          : isAct
+            ? `0 0 0 1px rgba(239,68,68,0.08), 0 8px 20px -18px ${tone.glow}`
+            : 'none',
       }}
       onMouseEnter={(e) => {
         if (active) return;
-        e.currentTarget.style.borderColor = '#3f3f46';
+        e.currentTarget.style.borderColor = tone.color;
         e.currentTarget.style.backgroundColor = '#131316';
         e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = `0 12px 28px -14px ${tone.glow}`;
       }}
       onMouseLeave={(e) => {
         if (active) return;
         e.currentTarget.style.borderColor = '#27272a';
-        e.currentTarget.style.backgroundColor = '#09090b';
+        e.currentTarget.style.backgroundColor = '#0c0c0f';
         e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = isAct
+          ? `0 0 0 1px rgba(239,68,68,0.08), 0 8px 20px -18px ${tone.glow}`
+          : 'none';
       }}
     >
+      {isAct && (
+        <div
+          className="absolute left-0 top-0 bottom-0 w-1"
+          style={{ background: `linear-gradient(to bottom, ${tone.color}, transparent)` }}
+        />
+      )}
+
       <div className="flex items-center gap-2 mb-3">
         <span
           className="font-bold uppercase tracking-wider px-2 py-0.5 rounded"
@@ -44,16 +67,51 @@ export default function SignalCard({ signal, active, preference, onClick }) {
           {signal.timeAgo}
         </span>
         <div className="ml-auto flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: signal.impact > 70 ? YELLOW : '#3f3f46' }} />
+          <div
+            className="w-1.5 h-1.5 rounded-full"
+            style={{ backgroundColor: signal.impact > 70 ? tone.color : '#3f3f46' }}
+          />
           <span className="text-xs text-zinc-400">Impact {signal.impact}</span>
         </div>
       </div>
-      <h3 className="text-white font-medium leading-snug mb-3">{signal.title}</h3>
+
+      <h3 className={cn('text-white font-medium leading-snug mb-3', isAct ? 'text-base' : 'text-sm')}>
+        {signal.title}
+      </h3>
+
+      {isAct && (
+        <p className="text-xs text-zinc-400 leading-relaxed mb-4 line-clamp-2">
+          {signal.summary}
+        </p>
+      )}
+
+      {isAct && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between text-xs text-zinc-500 mb-1">
+            <span className="uppercase tracking-wider">Impact</span>
+            <span className="font-mono text-zinc-300">{signal.impact}/100</span>
+          </div>
+          <div className="h-1 bg-zinc-900 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{
+                width: signal.impact + '%',
+                background: `linear-gradient(to right, ${tone.color}, ${YELLOW})`,
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <span className="text-xs text-zinc-500">{signal.source}</span>
         <div className="flex items-center gap-2">
           {shifted && (
-            <span className="text-zinc-500" style={{ fontSize: 10 }} title={`Shifted from ${signal.recommendation}`}>
+            <span
+              className="text-zinc-500"
+              style={{ fontSize: 10 }}
+              title={`Shifted from ${signal.recommendation}`}
+            >
               · was {signal.recommendation}
             </span>
           )}
@@ -66,6 +124,13 @@ export default function SignalCard({ signal, active, preference, onClick }) {
           </div>
         </div>
       </div>
+
+      {isAct && (
+        <div className="mt-4 pt-3 border-t border-zinc-800 flex items-center justify-center gap-1.5 text-xs font-semibold text-zinc-400 group-hover:text-white transition">
+          <MessageSquare className="w-3.5 h-3.5" />
+          Open Persona Debate
+        </div>
+      )}
     </button>
   );
 }

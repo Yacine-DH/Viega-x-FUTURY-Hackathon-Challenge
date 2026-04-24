@@ -13,7 +13,9 @@ export default function App() {
     '@keyframes glowPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 204, 0, 0.4); } 50% { box-shadow: 0 0 0 8px rgba(255, 204, 0, 0); } }' +
     '@keyframes recommendationPop { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }' +
     '@keyframes panelSlideIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }' +
-    '@keyframes hintPulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }';
+    '@keyframes hintPulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }' +
+    '@keyframes collapseDown { from { height: 0; opacity: 0; } to { height: var(--radix-collapsible-content-height); opacity: 1; } }' +
+    '@keyframes collapseUp { from { height: var(--radix-collapsible-content-height); opacity: 1; } to { height: 0; opacity: 0; } }';
 
   return (
     <>

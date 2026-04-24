@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Compass, Radar, MessageSquare, Sparkles, TrendingUp, Activity,
   Bell, Search, Settings, LogOut, Filter, ChevronRight, ExternalLink, X,
@@ -6,17 +6,17 @@ import {
 import { YELLOW, YELLOW_HOVER, REC_STYLES } from '../constants/styles';
 import { PERSONAS } from '../constants/personas';
 import { SIGNALS } from '../constants/signals';
-import { FOCUS_OPTIONS } from '../constants/focusOptions';
 import { applyPreference, getConfidenceAdjusted, signalBaseline } from '../lib/preference';
+import { computeTier } from '../lib/tier';
 import ConfidenceRing from '../components/ConfidenceRing';
 import NavItem from '../components/NavItem';
 import PreferenceToggle from '../components/PreferenceToggle';
-import SignalCard from '../components/SignalCard';
+import TierSection from '../components/TierSection';
+import FiledSection from '../components/FiledSection';
 import DebateModal from '../components/DebateModal';
 import Logo from '../components/Logo';
 
 export default function Dashboard({ onSignOut }) {
-  const [focus] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [debateOpen, setDebateOpen] = useState(false);
   const [activePersonas, setActivePersonas] = useState({ david: true, josef: true, steffen: true });
@@ -27,12 +27,27 @@ export default function Dashboard({ onSignOut }) {
   const types = ['All'].concat(Array.from(new Set(SIGNALS.map((s) => s.type))));
   const filteredSignals = typeFilter === 'All' ? SIGNALS : SIGNALS.filter((s) => s.type === typeFilter);
 
+  const tiered = useMemo(() => {
+    const groups = { ACT: [], TRACK: [], FIELD: [] };
+    filteredSignals.forEach((s) => {
+      const rec = applyPreference(s, preference);
+      const conf = getConfidenceAdjusted(s, preference);
+      groups[computeTier(rec, conf)].push(s);
+    });
+    return groups;
+  }, [filteredSignals, preference]);
+
   const togglePersona = (id) => {
     setActivePersonas((p) => {
       const next = Object.assign({}, p);
       next[id] = !p[id];
       return next;
     });
+  };
+
+  const openSignalWithDebate = (id) => {
+    setSelectedId(id);
+    setDebateOpen(true);
   };
 
   const adjustedRec = selected ? applyPreference(selected, preference) : null;
@@ -43,7 +58,6 @@ export default function Dashboard({ onSignOut }) {
 
   const buildCount = SIGNALS.filter((s) => applyPreference(s, preference) === 'BUILD').length;
   const activeCount = Object.values(activePersonas).filter(Boolean).length;
-  const focusLabel = FOCUS_OPTIONS.find((f) => f.id === focus);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white" style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif' }}>
@@ -54,9 +68,6 @@ export default function Dashboard({ onSignOut }) {
         <div className="flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
             <Logo size={24} />
-            <div className="text-zinc-500 uppercase tracking-wider" style={{ fontSize: 10 }}>
-              Focus - {focusLabel ? focusLabel.label : 'Unset'}
-            </div>
           </div>
 
           <PreferenceToggle value={preference} onChange={setPreference} />
@@ -202,25 +213,31 @@ export default function Dashboard({ onSignOut }) {
             </div>
           </div>
 
-          <div className="p-5 space-y-3">
-            {filteredSignals.map((s) => (
-              <SignalCard
-                key={s.id}
-                signal={s}
-                active={selectedId === s.id}
-                preference={preference}
-                onClick={() => setSelectedId(s.id)}
-              />
-            ))}
+          <div className="p-5">
+            <TierSection
+              tier="ACT"
+              signals={tiered.ACT}
+              preference={preference}
+              onCardClick={openSignalWithDebate}
+              activeId={selectedId}
+            />
+            <TierSection
+              tier="TRACK"
+              signals={tiered.TRACK}
+              preference={preference}
+              onCardClick={openSignalWithDebate}
+              activeId={selectedId}
+            />
+            <FiledSection signals={tiered.FIELD} />
           </div>
         </main>
 
         {selected && (
-        <aside
-          key={'panel-' + selectedId}
-          className="col-span-4 overflow-y-auto border-l border-zinc-800"
-          style={{ animation: 'panelSlideIn 0.3s ease-out' }}
-        >
+          <aside
+            key={'panel-' + selectedId}
+            className="col-span-4 overflow-y-auto border-l border-zinc-800"
+            style={{ animation: 'panelSlideIn 0.3s ease-out' }}
+          >
             <div className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">

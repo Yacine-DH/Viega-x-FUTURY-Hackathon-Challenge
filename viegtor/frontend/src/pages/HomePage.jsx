@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import { FileText, Search, ChevronRight, Mouse } from 'lucide-react';
+import { motion, useMotionValue, useTransform } from 'framer-motion';
+import { FileText, Search, ChevronRight } from 'lucide-react';
 import { YELLOW } from '../constants/styles';
 import Logo from '../components/Logo';
+import CompassScene from '../components/CompassScene';
 
 export default function HomePage({ onEnterCO, onEnterExpert }) {
   const wrapRef = useRef(null);
@@ -10,8 +11,6 @@ export default function HomePage({ onEnterCO, onEnterExpert }) {
 
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
-  const rot = useTransform([mx, my], ([x, y]) => (Math.atan2(y, x) * 180) / Math.PI + 90);
-  const smoothRot = useSpring(rot, { stiffness: 80, damping: 18, mass: 0.6 });
 
   const leftGlow = useTransform(mx, [-600, 0, 600], [0.35, 0.12, 0]);
   const rightGlow = useTransform(mx, [-600, 0, 600], [0, 0.12, 0.45]);
@@ -53,13 +52,8 @@ export default function HomePage({ onEnterCO, onEnterExpert }) {
       />
       <div className="absolute inset-y-0 left-1/2 w-px bg-gradient-to-b from-transparent via-zinc-800 to-transparent pointer-events-none" />
 
-      <nav className="relative z-20 flex items-center justify-between px-8 py-6">
-        <div className="flex items-center gap-3">
-          <Logo size={28} />
-          <div className="uppercase tracking-[0.25em] text-zinc-400" style={{ fontSize: 11 }}>
-            Intelligent Compass
-          </div>
-        </div>
+      <nav className="relative z-20 flex items-center justify-center px-8 py-6">
+        <Logo size={34} />
       </nav>
 
       <div className="relative z-10 text-center pt-6 pb-4">
@@ -84,7 +78,7 @@ export default function HomePage({ onEnterCO, onEnterExpert }) {
         />
 
         <div className="col-span-4 flex items-center justify-center">
-          <CompassDial rotation={smoothRot} side={side} />
+          <CompassScene mx={mx} my={my} side={side} size={390} />
         </div>
 
         <SidePanel
@@ -99,23 +93,6 @@ export default function HomePage({ onEnterCO, onEnterExpert }) {
           onClick={onEnterExpert}
         />
       </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8, duration: 0.6 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10"
-      >
-        <div
-          className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-zinc-800"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)' }}
-        >
-          <Mouse className="w-4 h-4" style={{ color: YELLOW }} />
-          <div className="text-xs text-zinc-400 leading-tight">
-            Move your mouse<br />to steer the compass
-          </div>
-        </div>
-      </motion.div>
     </div>
   );
 }
@@ -141,7 +118,7 @@ function SidePanel({ align, icon: Icon, eyebrow, title, lines, cta, accent, acti
       </div>
       <div className="text-zinc-400 text-sm mb-5">{title}</div>
 
-      <div className={`w-24 h-px mb-5 ${isLeft ? '' : ''}`} style={{ backgroundColor: '#27272a' }} />
+      <div className="w-24 h-px mb-5" style={{ backgroundColor: '#27272a' }} />
 
       <div className="text-zinc-400 text-sm leading-relaxed mb-8">
         {lines.map((l, i) => <div key={i}>{l}</div>)}
@@ -168,84 +145,5 @@ function SidePanel({ align, icon: Icon, eyebrow, title, lines, cta, accent, acti
         <ChevronRight className="w-4 h-4" />
       </motion.button>
     </motion.div>
-  );
-}
-
-function CompassDial({ rotation, side }) {
-  return (
-    <div className="relative" style={{ width: 440, height: 440 }}>
-      {[1, 2, 3, 4].map((i) => (
-        <motion.div
-          key={i}
-          className="absolute inset-0 rounded-full border"
-          style={{
-            borderColor: 'rgba(113,113,122,0.15)',
-            transform: `scale(${1 + i * 0.18})`,
-          }}
-          animate={{ opacity: [0.3, 0.6, 0.3] }}
-          transition={{ duration: 4, repeat: Infinity, delay: i * 0.4 }}
-        />
-      ))}
-
-      <motion.div
-        className="absolute rounded-full"
-        style={{
-          inset: 40,
-          background: 'radial-gradient(circle at 50% 40%, #2a2a2e 0%, #0a0a0c 70%)',
-          boxShadow: 'inset 0 2px 20px rgba(255,255,255,0.08), inset 0 -4px 24px rgba(0,0,0,0.8), 0 30px 80px rgba(0,0,0,0.6)',
-          border: '2px solid #1a1a1d',
-        }}
-      >
-        <div
-          className="absolute inset-4 rounded-full"
-          style={{
-            border: '1px solid rgba(255,255,255,0.04)',
-            background: 'radial-gradient(circle at 50% 40%, #1a1a1d 0%, #0a0a0c 80%)',
-          }}
-        />
-
-        <motion.div
-          className="absolute inset-0 rounded-full pointer-events-none"
-          animate={{
-            boxShadow: side === 'expert'
-              ? '0 0 60px 4px rgba(255,204,0,0.35), inset 0 0 40px rgba(255,204,0,0.15)'
-              : '0 0 30px rgba(255,255,255,0.06)',
-          }}
-          transition={{ duration: 0.4 }}
-        />
-
-        <motion.div
-          className="absolute inset-0 flex items-center justify-center"
-          style={{ rotate: rotation }}
-        >
-          <svg width="100%" height="100%" viewBox="-100 -100 200 200">
-            <defs>
-              <linearGradient id="needleN" x1="0" y1="1" x2="0" y2="0">
-                <stop offset="0" stopColor={YELLOW} stopOpacity="0.2" />
-                <stop offset="1" stopColor={YELLOW} />
-              </linearGradient>
-              <linearGradient id="needleS" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stopColor="#3f3f46" />
-                <stop offset="1" stopColor="#18181b" />
-              </linearGradient>
-            </defs>
-            <polygon points="0,-70 8,0 -8,0" fill="url(#needleN)" />
-            <polygon points="0,70 8,0 -8,0" fill="url(#needleS)" />
-            <circle cx="0" cy="0" r="7" fill="#e4e4e7" stroke="#18181b" strokeWidth="1.5" />
-            <circle cx="0" cy="0" r="2.5" fill="#18181b" />
-          </svg>
-        </motion.div>
-
-        {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => (
-          <div
-            key={deg}
-            className="absolute left-1/2 top-1/2"
-            style={{ transform: `translate(-50%, -50%) rotate(${deg}deg) translateY(-150px)` }}
-          >
-            <div className="w-px h-3" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
-          </div>
-        ))}
-      </motion.div>
-    </div>
   );
 }
