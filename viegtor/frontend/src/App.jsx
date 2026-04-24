@@ -24,7 +24,7 @@ export default function App() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: keyframes }} />
-      {view === 'home' && <HomePage onEnterCO={enter} onEnterExpert={enter} />}
+      {view === 'home' && <HomePage onEnter={enter} />}
       {view === 'app' && <Dashboard onSignOut={signOut} onOpenTrend={openTrend} onHome={signOut} />}
       {view === 'trend' && trendSignal && <TrendDetailPage signal={trendSignal} onBack={backToDashboard} />}
     </>

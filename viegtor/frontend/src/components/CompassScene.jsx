@@ -95,8 +95,8 @@ function CompassRose({ mx, my }) {
         <sphereGeometry args={[0.14, 48, 48]} />
         <meshStandardMaterial color={0xd4d4d8} metalness={1} roughness={0.18} />
       </mesh>
-      <mesh position={[0, 0, 0.22]}>
-        <cylinderGeometry args={[0.04, 0.04, 0.02, 32]} rotation={[Math.PI / 2, 0, 0]} />
+      <mesh position={[0, 0, 0.22]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.02, 32]} />
         <meshStandardMaterial color={0x18181b} metalness={0.4} roughness={0.6} />
       </mesh>
     </group>
@@ -132,7 +132,7 @@ function Dial({ side }) {
 
   return (
     <group>
-      <mesh position={[0, 0, -0.08]}>
+      <mesh position={[0, 0, -0.08]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[1.98, 1.98, 0.16, 96]} />
         <meshStandardMaterial color={0x141418} metalness={0.6} roughness={0.35} />
       </mesh>
@@ -298,8 +298,9 @@ function Scene({ mx, my, side }) {
 }
 
 export default function CompassScene({ mx, my, side, size = 390 }) {
+  const dim = typeof size === 'number' ? `${size}px` : size;
   return (
-    <div style={{ width: size, height: size }}>
+    <div style={{ width: dim, height: dim }}>
       <Canvas
         dpr={[1, 2]}
         camera={{ position: [0, 0, 6], fov: 38 }}
