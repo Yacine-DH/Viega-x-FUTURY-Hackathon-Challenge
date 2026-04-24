@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Annotated, Literal
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field
 
 from schemas.decisions import DecisionType, RoutingFactors, UIMetrics
 
@@ -48,11 +48,21 @@ class TribunalRequest(BaseModel):
 
 class TribunalResponse(BaseModel):
     signal_id: str
-    persona_votes: dict[str, str] = Field(
-        description="Maps persona name to their argued position"
+    persona_arguments: dict[str, str] = Field(
+        description="Maps persona name to their 2-3 sentence expert opinion on the signal"
     )
-    consensus_decision: DecisionType
-    consensus_reasoning: str
+    consensus_feedback: str = Field(
+        description="Middle-ground synthesis — actionable feedback for the Product Manager"
+    )
+    logical_score: float = Field(
+        ..., ge=0.0, le=1.0,
+        description="Coherence and groundedness quality score (0=vague, 1=specific and evidence-backed)"
+    )
+    stored: bool = Field(
+        default=False,
+        description="True if this feedback cleared the quality threshold and was persisted"
+    )
     coefficient_adjustments: dict[str, float] = Field(
-        description="Source keys mapped to new weight values (0.0–1.0)"
+        default_factory=dict,
+        description="Source keys mapped to adjusted weight values (0.0–1.0)"
     )

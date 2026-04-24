@@ -7,7 +7,7 @@ export default function SignalCard({ signal, active, preference, onClick }) {
   const adjustedRec = applyPreference(signal, preference);
   const rec = REC_STYLES[adjustedRec];
   const RecIcon = rec.icon;
-  const typeStyle = TYPE_COLORS[signal.type];
+  const typeStyle = TYPE_COLORS[signal.type] || { color: '#71717a', bg: 'rgba(113,113,122,0.1)' };
   const shifted = adjustedRec !== signal.recommendation;
   return (
     <button

@@ -21,14 +21,14 @@ function timeAgo(isoString) {
 }
 
 export function adaptSignal(s) {
-  const { quality_score, benefit_score, timing_score, tech_direction_score } = s.routing_factors;
+  const rf = s.routing_factors || {};
   const confidence = Math.round(
-    ((quality_score + benefit_score + timing_score + tech_direction_score) / 4) * 100
+    (((rf.quality_score ?? 0) + (rf.benefit_score ?? 0) + (rf.timing_score ?? 0) + (rf.tech_direction_score ?? 0)) / 4) * 100
   );
 
   // reasoning is a single string from the backend; split into bullets for the UI
-  const reasoning = s.reasoning
-    .split(/\n|(?<=\.)\s+/)
+  const reasoning = (s.reasoning || '')
+    .split('\n')
     .map((r) => r.trim())
     .filter(Boolean);
 
@@ -38,7 +38,7 @@ export function adaptSignal(s) {
     source: s.source,
     type: SOURCE_TYPE_MAP[s.source] || 'Signal',
     timeAgo: timeAgo(s.created_at),
-    impact: Math.round(s.ui_metrics.impact * 100),
+    impact: Math.round((s.ui_metrics?.impact ?? 0) * 100),
     confidence,
     recommendation: s.decision,      // BUILD | INVEST | IGNORE
     summary: s.summary,
@@ -47,13 +47,13 @@ export function adaptSignal(s) {
     url: s.url,
     tier: s.tier,                     // ACT | TRACK | FILED
     tier_reasoning: s.tier_reasoning,
-    ui_metrics: {
+    ui_metrics: s.ui_metrics ? {
       relevance: s.ui_metrics.relevance,
       impact: s.ui_metrics.impact,
       urgency: s.ui_metrics.urgency,
       risk: s.ui_metrics.risk,
       profit_impact: s.ui_metrics.profit_impact,
-    },
+    } : null,
     routing_factors: s.routing_factors,
     // populated after a tribunal call
     debate: [],
