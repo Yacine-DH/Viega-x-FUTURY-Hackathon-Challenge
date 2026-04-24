@@ -331,9 +331,20 @@ export default function TrendDetailPage({ signal, onBack }) {
   const rec = REC_STYLES[signal.recommendation];
   const RecIcon = rec.icon;
 
-  const facts = (signal.reasoning || []).map(cleanText).filter(Boolean);
-  const whyText = cleanText(signal.summary) || facts.join('. ');
-  const whyPoints = facts.length ? facts : [whyText];
+  // Build signal-specific bullet points for "Why this decision".
+  // Live backend:  reasoning is a string, evidence_trail is a string[]
+  // Mock data:     reasoning is a string[]
+  const rawEvidence = Array.isArray(signal.evidence_trail) ? signal.evidence_trail : [];
+  const rawReasoning = Array.isArray(signal.reasoning)
+    ? signal.reasoning
+    : typeof signal.reasoning === 'string' && signal.reasoning
+      ? signal.reasoning.split('\n')
+      : [];
+  const facts = (rawEvidence.length ? rawEvidence : rawReasoning)
+    .map((x) => cleanText(typeof x === 'string' ? x : String(x ?? '')))
+    .filter(Boolean);
+  const whyText = cleanText(signal.summary || '');
+  const whyPoints = facts.length ? facts : whyText ? [whyText] : ['No reasoning recorded.'];
 
   const primarySource = {
     label: sourceLabel(signal.source),
@@ -418,8 +429,11 @@ export default function TrendDetailPage({ signal, onBack }) {
                     <span className="truncate">{primarySource.url}</span>
                   </a>
                 ) : (
-              <div className="text-xs text-zinc-500">Link unavailable</div>
-            )}
+                  <div className="text-xs text-zinc-500">Link unavailable</div>
+                )}
+              </div>
+              <span className="text-xs text-zinc-500 flex-shrink-0">{primarySource.ago}</span>
+            </div>
           </div>
 
           <div className="rounded-2xl border border-zinc-800 p-4" style={{ backgroundColor: '#0f0f12' }}>
