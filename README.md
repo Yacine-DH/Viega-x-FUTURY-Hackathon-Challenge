@@ -75,7 +75,7 @@ graph TD
         Debate -->|Josef, Steffen, David, Volkmar, Nick| Consensus[Generate Final Consensus]
         Consensus -->|If Validated| UpdateWeights[Adjust Math Coefficients & Update DB]
         UpdateWeights -.->|Real-time UI Sync| DB
-   end
+    end
 ```
 
 ```mermaid
@@ -113,7 +113,7 @@ graph TD
         L --> N
         
         H -.->|Real-time DB Sync| K
-    end
+    end 
 ```
 
 
