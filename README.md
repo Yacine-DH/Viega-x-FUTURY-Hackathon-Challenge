@@ -111,8 +111,7 @@ graph TD
         L --> N
         
         H -.->|Real-time DB Sync| K
-    end
-```
+    end 
 ```
 
 
