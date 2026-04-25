@@ -8,8 +8,8 @@ Companies struggle to systematically monitor competitors, market movements, and 
 **Build a solution that automatically analyzes market and competitor data (including patents) and translates signals into clear, actionable product decisions.**
 Develop a prototype for an intelligent assistant that empowers Product Managers by transforming scattered market data into clear, actionable product decisions.
 
-- System Architecture & Workflow
-Here is a high-level overview of how the Intelligent Compass translates raw data into strategic insights:
+## System Architecture & Workflow :
+**Here is a high-level overview of how the Intelligent Compass translates raw data into strategic insights**
 ```mermaid
 graph TD
     subgraph Data Acquisition [Data Acquisition & Orchestration]
