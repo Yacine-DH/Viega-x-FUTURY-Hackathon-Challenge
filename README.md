@@ -76,8 +76,7 @@ graph TD
         Consensus -->|If Validated| UpdateWeights[Adjust Math Coefficients & Update DB]
         UpdateWeights -.->|Real-time UI Sync| DB
     end
-```
-
+````
 ```mermaid
 graph TD
     subgraph Acquisition [Data Acquisition - External Web]
@@ -113,8 +112,10 @@ graph TD
         L --> N
         
         H -.->|Real-time DB Sync| K
-    end 
+    end
 ```
+
+
 
 
 
